@@ -139,6 +139,7 @@ from PhysicsTools.NanoAOD.nano_cff import nanoAOD_customizeCommon
 #call to customisation function nanoAOD_customizeCommon imported from PhysicsTools.NanoAOD.nano_cff
 process = nanoAOD_customizeCommon(process)
 
+
 # EXOnanoAOD customisations
 from PhysicsTools.EXOnanoAOD.custom_exo_cff import add_exonanoTables, add_exonanoMCTables
 process = add_exonanoTables(process)
@@ -154,17 +155,12 @@ from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllMC
 #call to customisation function miniAOD_customizeAllMC imported from PhysicsTools.PatAlgos.slimming.miniAOD_tools
 process = miniAOD_customizeAllMC(process)
 
-# EXOnanoAOD customisation
-
-from PhysicsTools.EXOnanoAOD.custom_exonanoaod_template_cff import *
+#displaced tau customisation
 
 from PhysicsTools.EXOnanoAOD.custom_displacedtau_cff import *
 
-# Replace template with customization
-
-process = add_customTables_template(process)
-
 process = add_displacedtauCHSTables(process, 1)
+
 
 # End of customisation functions
 
