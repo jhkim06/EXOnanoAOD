@@ -161,7 +161,6 @@ from PhysicsTools.EXOnanoAOD.custom_displacedtau_cff import *
 
 process = add_displacedtauCHSTables(process, 1)
 
-
 # End of customisation functions
 
 # Customisation from command line
