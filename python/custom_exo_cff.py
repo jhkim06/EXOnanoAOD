@@ -121,7 +121,7 @@ def add_electronVertexTables(process):
     process.electronVertexTask = cms.Task(process.electronVertexTable)
     process.electronExtendedTable = electronExtendedTable
     process.electronExtendedTask = cms.Task(process.electronExtendedTable)
-   
+
     process.nanoTableTaskCommon.add(process.electronVertexTask)
 
     return process
@@ -156,7 +156,7 @@ def add_exonanoTables(process):
     process = add_dsamuonTables(process)
     process = add_electronVertexTables(process)
     process = add_dispJetTables(process)
-
+ 
     process = update_genParticleTable(process)
 
     return process
