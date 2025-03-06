@@ -175,4 +175,3 @@ def add_exonanoMCTables(process):
 
     process = update_genParticleTable(process)
 )
-
