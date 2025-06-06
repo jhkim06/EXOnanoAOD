@@ -20,7 +20,7 @@ process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('PhysicsTools.PatAlgos.slimming.metFilterPaths_cff')
 process.load('Configuration.StandardSequences.PATMC_cff')
 process.load('PhysicsTools.NanoAOD.nano_cff')
-process.load('PhysicsTools.NanoAOD.nano_chsjet_cff')
+#process.load('PhysicsTools.NanoAOD.nano_chsjet_cff')
 process.load('PhysicsTools.NanoAOD.btvMC_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
@@ -87,21 +87,10 @@ process.NANOAODoutput = cms.OutputModule("NanoAODOutputModule",
         dataTier = cms.untracked.string('NANOAOD'),
         filterName = cms.untracked.string('')
     ),
-    fileName = cms.untracked.string('Run3_2023_PAT_EXONANO_template_test_TT_v2.root'),
+    fileName = cms.untracked.string('Run3_2023_PAT_EXONANO_template_test_ST_Puppi_CHS.root'),
     outputCommands = process.NANOAODEventContent.outputCommands
 
                                          )
-
-'''
-process.NANOAODoutput.outputCommands.extend([
-    'keep nanoaodFlatTable_JeCHSt*_*_*',
-    ##'keep nanoaodFlatTable_Jet*_*_*'
-    
-])
-'''
-
-
-
 
 # Additional output definition
 
@@ -140,29 +129,18 @@ process.Flag_trkPOG_manystripclus53X = cms.Path(~process.manystripclus53X)
 process.Flag_trkPOG_toomanystripclus53X = cms.Path(~process.toomanystripclus53X)
 
 process.nanoAOD_step = cms.Path(process.nanoSequenceMC)
-process.nanoAOD_step_CHS = cms.Path(process.nanoSequenceCommonCHS)
 process.endjob_step = cms.EndPath(process.endOfProcess)
 process.NANOAODoutput_step = cms.EndPath(process.NANOAODoutput)
 
 # Schedule definition
 
-process.schedule = cms.Schedule(process.Flag_HBHENoiseFilter,process.Flag_HBHENoiseIsoFilter,process.Flag_CSCTightHaloFilter,process.Flag_CSCTightHaloTrkMuUnvetoFilter,process.Flag_CSCTightHalo2015Filter,process.Flag_globalTightHalo2016Filter,process.Flag_globalSuperTightHalo2016Filter,process.Flag_HcalStripHaloFilter,process.Flag_hcalLaserEventFilter,process.Flag_EcalDeadCellTriggerPrimitiveFilter,process.Flag_EcalDeadCellBoundaryEnergyFilter,process.Flag_ecalBadCalibFilter,process.Flag_goodVertices,process.Flag_eeBadScFilter,process.Flag_ecalLaserCorrFilter,process.Flag_trkPOGFilters,process.Flag_chargedHadronTrackResolutionFilter,process.Flag_muonBadTrackFilter,process.Flag_BadChargedCandidateFilter,process.Flag_BadPFMuonFilter,process.Flag_BadPFMuonDzFilter,process.Flag_hfNoisyHitsFilter,process.Flag_BadChargedCandidateSummer16Filter,process.Flag_BadPFMuonSummer16Filter,process.Flag_trkPOG_manystripclus53X,process.Flag_trkPOG_toomanystripclus53X,process.Flag_trkPOG_logErrorTooManyClusters,process.nanoAOD_step,process.nanoAOD_step_CHS,process.endjob_step,process.NANOAODoutput_step)
+process.schedule = cms.Schedule(process.Flag_HBHENoiseFilter,process.Flag_HBHENoiseIsoFilter,process.Flag_CSCTightHaloFilter,process.Flag_CSCTightHaloTrkMuUnvetoFilter,process.Flag_CSCTightHalo2015Filter,process.Flag_globalTightHalo2016Filter,process.Flag_globalSuperTightHalo2016Filter,process.Flag_HcalStripHaloFilter,process.Flag_hcalLaserEventFilter,process.Flag_EcalDeadCellTriggerPrimitiveFilter,process.Flag_EcalDeadCellBoundaryEnergyFilter,process.Flag_ecalBadCalibFilter,process.Flag_goodVertices,process.Flag_eeBadScFilter,process.Flag_ecalLaserCorrFilter,process.Flag_trkPOGFilters,process.Flag_chargedHadronTrackResolutionFilter,process.Flag_muonBadTrackFilter,process.Flag_BadChargedCandidateFilter,process.Flag_BadPFMuonFilter,process.Flag_BadPFMuonDzFilter,process.Flag_hfNoisyHitsFilter,process.Flag_BadChargedCandidateSummer16Filter,process.Flag_BadPFMuonSummer16Filter,process.Flag_trkPOG_manystripclus53X,process.Flag_trkPOG_toomanystripclus53X,process.Flag_trkPOG_logErrorTooManyClusters,process.nanoAOD_step,process.endjob_step,process.NANOAODoutput_step)
 
 process.schedule.associate(process.patTask)
 from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
 associatePatAlgosToolsTask(process)
 
 # customisation of the process.
-
-# EXOnanoAOD customisation
-
-#process = BTVCustomNanoAODStaus(process, useCHSJets = use_CHS_jets) # to keep PF Candidates of AK4 jets
-
-#use_CHS_jets = True
-#from PhysicsTools.EXOnanoAOD.custom_displacedtau_cff import *
-#run3modifier_chs(process, useCHSJets = use_CHS_jets)    
-
-#process = BTVCustomNanoAODStausDxyzInfo(process, useCHSJets = use_CHS_jets) # to keep PF Candidates of AK4 jets
 
 from PhysicsTools.NanoAOD.nano_cff import nanoAOD_customizeCommon, nanoTableTaskCommon
 
