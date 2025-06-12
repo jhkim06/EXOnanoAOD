@@ -141,7 +141,8 @@ def add_displacedtauCHSTables(process, isMC):
         "dxy": ExtVar("jetImpactParameters:jetDxy", float, doc = "leadingPtPFCand_dxy which is within dR=0.4 and charged/hasTrackDetails"),
         "dz": ExtVar("jetImpactParameters:jetDz", float, doc = "leadingPtPFCand_dz which is within dR=0.4 and charged/hasTrackDetails"),
         "dxyerror": ExtVar("jetImpactParameters:jetDxyError", float, doc = "leadingPtPFCand_dxyerror which is within dR=0.4 and charged/hasTrackDetails"),
-        "dzerror": ExtVar("jetImpactParameters:jetDzError", float, doc = "leadingPtPFCand_dzerror which is within dR=0.4 and charged/hasTrackDetails"), 
+        "dzerror": ExtVar("jetImpactParameters:jetDzError", float, doc = "leadingPtPFCand_dzerror which is within dR=0.4 and charged/hasTrackDetails"),
+        "charge": ExtVar("jetImpactParameters:jetCharge", float, doc = "leadingPtPFCand_charge which is within dR=0.4 and charged/hasTrackDetails"), 
     }
 
     print ('adding disTau edproducer')
