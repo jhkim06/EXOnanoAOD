@@ -107,8 +107,8 @@ def add_displacedtauCHSTables(process, isMC):
     elif os.path.exists( os.path.basename(file) ):
         file_string = os.path.basename(file)
     else:
-        #file_string = "data/particlenet_v1_a27159734e304ea4b7f9e0042baa9e22.pb"
-        file_string = "/afs/cern.ch/work/p/ppalit2/public/tau_pog_reco/exonanoaod_v2/CMSSW_15_0_0_pre3/src/PhysicsTools/EXOnanoAOD/data/particlenet_v1_a27159734e304ea4b7f9e0042baa9e22.pb"
+        file_string = "data/particlenet_v1_a27159734e304ea4b7f9e0042baa9e22.pb"
+        #file_string = "/afs/cern.ch/work/p/ppalit2/public/tau_pog_reco/exonanoaod_v2/CMSSW_15_0_0_pre3/src/PhysicsTools/EXOnanoAOD/data/particlenet_v1_a27159734e304ea4b7f9e0042baa9e22.pb"
 
     process.options = cms.untracked.PSet(
         numberOfThreads = cms.untracked.uint32(4),  # Global thread count
