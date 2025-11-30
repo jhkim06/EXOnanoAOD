@@ -1,9 +1,9 @@
 import FWCore.ParameterSet.Config as cms
 from PhysicsTools.NanoAOD.common_cff import *
 
-
 from PhysicsTools.EXOnanoAOD.cscMDSshowerTable_cfi import cscMDSshowerTable 
 from PhysicsTools.EXOnanoAOD.dtMDSshowerTable_cfi import dtMDSshowerTable 
+from PhysicsTools.EXOnanoAOD.custom_displacedtau_cff import *
 
 cscMDSshowerTable = cscMDSshowerTable.clone( 
     name = cms.string("cscMDSCluster"),
@@ -143,7 +143,8 @@ def update_genParticleTable(process):
     process.genParticleTable.variables.vx = Var("vx",float, doc = "gen particle production vertex x coordinate (cm)", precision=8)
     process.genParticleTable.variables.vy = Var("vy",float, doc = "gen particle production vertex y coordinate (cm)", precision=8)
     process.genParticleTable.variables.vz = Var("vz",float, doc = "gen particle production vertex z coordinate (cm)", precision=8)
-
+    
+    
     process.genParticleTable.variables.px = Var("px",float, doc = "gen particle momentum x coordinate", precision=8)
     process.genParticleTable.variables.py = Var("py",float, doc = "gen particle momentum y coordinate", precision=8)
     process.genParticleTable.variables.pz = Var("pz",float, doc = "gen particle momentum z coordinate", precision=8)
@@ -156,7 +157,8 @@ def add_exonanoTables(process):
     process = add_dsamuonTables(process)
     process = add_electronVertexTables(process)
     process = add_dispJetTables(process)
- 
+    process = add_displacedtauCHSTables(process)
+    
     process = update_genParticleTable(process)
 
     return process
@@ -174,4 +176,5 @@ def add_exonanoTablesMINIAOD(process):
 def add_exonanoMCTables(process):
 
     process = update_genParticleTable(process)
-)
+
+    return process

@@ -1,3 +1,4 @@
+# Auto generated configuration file
 # using: 
 # Revision: 1.19 
 # Source: /local/reps/CMSSW/CMSSW/Configuration/Applications/python/ConfigBuilder.py,v 
@@ -7,7 +8,6 @@ import FWCore.ParameterSet.Config as cms
 from Configuration.Eras.Era_Run3_cff import Run3
 
 process = cms.Process('NANO',Run3)
-
 
 # import of standard configurations
 process.load('Configuration.StandardSequences.Services_cff')
@@ -20,8 +20,6 @@ process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('PhysicsTools.PatAlgos.slimming.metFilterPaths_cff')
 process.load('Configuration.StandardSequences.PATMC_cff')
 process.load('PhysicsTools.NanoAOD.nano_cff')
-#process.load('PhysicsTools.NanoAOD.nano_chsjet_cff')
-process.load('PhysicsTools.NanoAOD.btvMC_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
@@ -32,8 +30,7 @@ process.maxEvents = cms.untracked.PSet(
 
 # Input source
 process.source = cms.Source("PoolSource",
-                        fileNames = cms.untracked.vstring('/store/group/lpcdisptau/Staus_M_100_100mm_13p6TeV_Run3Summer22/AODSIM/231007_160225/0000/Run3Summer22AOD-LLStau_M100_ctau100mm_1.root'),
-    #fileNames = cms.untracked.vstring('/store/mc/Run3Summer23DRPremix/TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8/AODSIM/130X_mcRun3_2023_realistic_v14-v2/70000/0073f4e8-97f3-4564-8fc3-e33bbb8842ee.root'),
+    fileNames = cms.untracked.vstring('/store/mc/Run3Summer23DRPremix/TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8/AODSIM/130X_mcRun3_2023_realistic_v14-v2/70000/0073f4e8-97f3-4564-8fc3-e33bbb8842ee.root'),
     secondaryFileNames = cms.untracked.vstring()
 )
 
@@ -78,8 +75,6 @@ process.configurationMetadata = cms.untracked.PSet(
 
 # Output definition
 
-#from PhysicsTools.EXOnanoAOD.custom_displacedtau_cff import *
-
 process.NANOAODoutput = cms.OutputModule("NanoAODOutputModule",
     compressionAlgorithm = cms.untracked.string('LZMA'),
     compressionLevel = cms.untracked.int32(9),
@@ -87,10 +82,9 @@ process.NANOAODoutput = cms.OutputModule("NanoAODOutputModule",
         dataTier = cms.untracked.string('NANOAOD'),
         filterName = cms.untracked.string('')
     ),
-    fileName = cms.untracked.string('Run3_2023_PAT_EXONANO_template_test_ST_Puppi_CHS.root'),
+    fileName = cms.untracked.string('Run3_2023_PAT_EXONANO_template.root'),
     outputCommands = process.NANOAODEventContent.outputCommands
-
-                                         )
+)
 
 # Additional output definition
 
@@ -127,23 +121,22 @@ process.Flag_trkPOGFilters = cms.Path(process.trkPOGFilters)
 process.Flag_trkPOG_logErrorTooManyClusters = cms.Path(~process.logErrorTooManyClusters)
 process.Flag_trkPOG_manystripclus53X = cms.Path(~process.manystripclus53X)
 process.Flag_trkPOG_toomanystripclus53X = cms.Path(~process.toomanystripclus53X)
-
 process.nanoAOD_step = cms.Path(process.nanoSequenceMC)
 process.endjob_step = cms.EndPath(process.endOfProcess)
 process.NANOAODoutput_step = cms.EndPath(process.NANOAODoutput)
 
 # Schedule definition
-
 process.schedule = cms.Schedule(process.Flag_HBHENoiseFilter,process.Flag_HBHENoiseIsoFilter,process.Flag_CSCTightHaloFilter,process.Flag_CSCTightHaloTrkMuUnvetoFilter,process.Flag_CSCTightHalo2015Filter,process.Flag_globalTightHalo2016Filter,process.Flag_globalSuperTightHalo2016Filter,process.Flag_HcalStripHaloFilter,process.Flag_hcalLaserEventFilter,process.Flag_EcalDeadCellTriggerPrimitiveFilter,process.Flag_EcalDeadCellBoundaryEnergyFilter,process.Flag_ecalBadCalibFilter,process.Flag_goodVertices,process.Flag_eeBadScFilter,process.Flag_ecalLaserCorrFilter,process.Flag_trkPOGFilters,process.Flag_chargedHadronTrackResolutionFilter,process.Flag_muonBadTrackFilter,process.Flag_BadChargedCandidateFilter,process.Flag_BadPFMuonFilter,process.Flag_BadPFMuonDzFilter,process.Flag_hfNoisyHitsFilter,process.Flag_BadChargedCandidateSummer16Filter,process.Flag_BadPFMuonSummer16Filter,process.Flag_trkPOG_manystripclus53X,process.Flag_trkPOG_toomanystripclus53X,process.Flag_trkPOG_logErrorTooManyClusters,process.nanoAOD_step,process.endjob_step,process.NANOAODoutput_step)
-
 process.schedule.associate(process.patTask)
 from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
 associatePatAlgosToolsTask(process)
 
 # customisation of the process.
 
-from PhysicsTools.NanoAOD.nano_cff import nanoAOD_customizeCommon, nanoTableTaskCommon
+# Automatic addition of the customisation function from PhysicsTools.NanoAOD.nano_cff
+from PhysicsTools.NanoAOD.nano_cff import nanoAOD_customizeCommon 
 
+#call to customisation function nanoAOD_customizeCommon imported from PhysicsTools.NanoAOD.nano_cff
 process = nanoAOD_customizeCommon(process)
 
 # EXOnanoAOD customisations
@@ -151,23 +144,17 @@ from PhysicsTools.EXOnanoAOD.custom_exo_cff import add_exonanoTables, add_exonan
 process = add_exonanoTables(process)
 process = add_exonanoMCTables(process)
 
-from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllMC
-
-process = miniAOD_customizeAllMC(process)
-
-#displaced tau customisation
-
-from PhysicsTools.EXOnanoAOD.custom_displacedtau_cff import *
-
-process = add_displacedtauCHSTables(process, 1)
-
 # End of customisation functions
 
-print("--- DEBUG: Final Output Commands ---")
+# customisation of the process.
 
-print("process.NANOAODoutput.outputCommands : ", process.NANOAODoutput.outputCommands)
+# Automatic addition of the customisation function from PhysicsTools.PatAlgos.slimming.miniAOD_tools
+from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllMC 
 
-print("------------------------------------")
+#call to customisation function miniAOD_customizeAllMC imported from PhysicsTools.PatAlgos.slimming.miniAOD_tools
+process = miniAOD_customizeAllMC(process)
+
+# End of customisation functions
 
 # Customisation from command line
 

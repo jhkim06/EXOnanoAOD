@@ -29,8 +29,7 @@ process.maxEvents = cms.untracked.PSet(
 
 # Input source
 process.source = cms.Source("PoolSource",
-
-    fileNames = cms.untracked.vstring('/store/mc/Run3Summer23DRPremix/TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8/AODSIM/130X_mcRun3_2023_realistic_v14-v2/70000/0073f4e8-97f3-4564-8fc3-e33bbb8842ee.root'),
+    fileNames = cms.untracked.vstring('/store/data/Run2023D/EGamma0/AOD/PromptReco-v1/000/370/580/00001/ff70112c-b5a0-4011-b054-a423a3cb1464.root'),
     secondaryFileNames = cms.untracked.vstring()
 )
 
