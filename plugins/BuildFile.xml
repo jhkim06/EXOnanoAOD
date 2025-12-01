@@ -10,10 +10,14 @@
 <use name="Geometry/CSCGeometry"/>
 <use name="MagneticField/Records"/>
 <use name="PhysicsTools/RecoUtils"/>
+<use name="PhysicsTools/TensorFlow"/>
 <use name="RecoVertex/KalmanVertexFit"/>
 <use name="TrackingTools/Records"/>
 <use name="TrackingTools/IPTools"/>
 <use name="fastjet"/>
+<use name="boost"/>
+<use name="boost_program_options"/>
+<use name="boost_filesystem"/>
 <flags EDM_PLUGIN="1"/>
 <export>
   <lib name="1"/>
