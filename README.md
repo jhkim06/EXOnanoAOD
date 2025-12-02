@@ -4,14 +4,14 @@ Development of custom cms EXO PAG nanoAOD format
 
 ## Setup in CMSSW
 ```
-cmsrel CMSSW_15_1_0_pre2
-cd CMSSW_15_1_0_pre2/src
+cmsrel CMSSW_16_0_0_pre1
+cd CMSSW_16_0_0_pre1/src
 cmsenv
 git cms-init
 git cms-addpkg PhysicsTools/NanoAOD
-mkdir PhysicsTools
 cd PhysicsTools
 git clone git@github.com:kerstinlovisa/EXOnanoAOD.git
+cd ..
 scram b -j
 ```
 

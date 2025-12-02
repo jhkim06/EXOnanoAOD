@@ -44,7 +44,6 @@ def add_displacedtauCHSTables(process, isMC):
     #
     # Customize jetTable
     #
-    ##process.jetTable.src = cms.InputTag("finalJets") 
     process.jetTable.src = cms.InputTag("linkedObjectsCHS","jets")
     process.jetTable.name = "JetCHS" # Change collection name from "Jet" ->" JetCHS"
 
@@ -90,8 +89,8 @@ def add_displacedtauCHSTables(process, isMC):
     elif os.path.exists( os.path.basename(file) ):
         file_string = os.path.basename(file)
     else:
-        file_string = "data/particlenet_v1_a27159734e304ea4b7f9e0042baa9e22.pb"
-        #file_string = "/afs/cern.ch/work/p/ppalit2/public/tau_pog_reco/exonanoaod_v2/CMSSW_15_0_0_pre3/src/PhysicsTools/EXOnanoAOD/data/particlenet_v1_a27159734e304ea4b7f9e0042baa9e22.pb"
+        # file_string = "data/particlenet_v1_a27159734e304ea4b7f9e0042baa9e22.pb"
+        file_string = "../../particlenet_v1_a27159734e304ea4b7f9e0042baa9e22.pb"
 
     process.options = cms.untracked.PSet(
         numberOfThreads = cms.untracked.uint32(4),  # Global thread count
@@ -128,7 +127,6 @@ def add_displacedtauCHSTables(process, isMC):
         "charge": ExtVar("jetImpactParameters:jetCharge", float, doc = "leadingPtPFCand_charge which is within dR=0.4 and charged/hasTrackDetails"), 
     }
 
-    print ('adding disTau edproducer')
     #if useCHSJets:
     process.jetTable.externalVariables = process.jetTable.externalVariables.clone(**d_disTauTagVars)
         ## for puppi jets, use this!
@@ -139,7 +137,6 @@ def add_displacedtauCHSTables(process, isMC):
         process.jetCorrFactorsNano,
         process.updatedJets,
         process.linkedObjectsCHS,
-        # process.jetUserDataTask,
         process.updatedJetsWithUserData,
         process.finalJets,
         process.disTauTag,
@@ -157,11 +154,12 @@ def add_displacedtauCHSTables(process, isMC):
     #
     # Only for MC
     #
-    process.jetCHSMCTable = process.jetMCTable.clone(
-        src = process.jetTable.src,
-        name = process.jetTable.name
-    )
-    process.jetMCTask.add(process.jetCHSMCTable)
+    if isMC:
+        process.jetCHSMCTable = process.jetMCTable.clone(
+            src = process.jetTable.src,
+            name = process.jetTable.name
+        )
+        process.jetMCTask.add(process.jetCHSMCTable)
 
     return process
 

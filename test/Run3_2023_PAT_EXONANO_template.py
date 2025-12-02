@@ -140,9 +140,10 @@ from PhysicsTools.NanoAOD.nano_cff import nanoAOD_customizeCommon
 process = nanoAOD_customizeCommon(process)
 
 # EXOnanoAOD customisations
-from PhysicsTools.EXOnanoAOD.custom_exo_cff import add_exonanoTables, add_exonanoMCTables
+# from PhysicsTools.EXOnanoAOD.custom_exo_cff import add_exonanoTables, add_exonanoMCTables
+from PhysicsTools.EXOnanoAOD.custom_exo_cff import add_exonanoTables
 process = add_exonanoTables(process)
-process = add_exonanoMCTables(process)
+# process = add_exonanoMCTables(process)
 
 # End of customisation functions
 
