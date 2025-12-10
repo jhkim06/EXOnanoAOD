@@ -120,7 +120,6 @@ PATmuonExtendedTable = cms.EDProducer("MuonExtendedTableProducer",
     muons=cms.InputTag("linkedObjects","muons"),
     primaryVertex=cms.InputTag("offlineSlimmedPrimaryVertices"),
     beamspot=cms.InputTag("offlineBeamSpot"),                        
-    generalTracks=cms.InputTag("generalTracks"),
     jets=cms.InputTag("linkedObjects","jets"),
     jetsFat=cms.InputTag("slimmedJetsAK8"),
     jetsSub=cms.InputTag("slimmedJetsAK8PFPuppiSoftDropPacked", "SubJets")
@@ -129,7 +128,6 @@ PATmuonExtendedTable = cms.EDProducer("MuonExtendedTableProducer",
 electronVertexTable = cms.EDProducer("ElectronVertexTableProducer",
     electrons=cms.InputTag("linkedObjects","electrons"),
     beamspot=cms.InputTag("offlineBeamSpot"),
-    generalTracks=cms.InputTag("generalTracks"),
     primaryVertex=cms.InputTag("offlineSlimmedPrimaryVertices")
 )
 
@@ -249,7 +247,8 @@ def add_exonanoTables(process):
 
     isMC = hasattr(process, "nanoSequenceMC") and process.schedule.contains(process.nanoSequenceMC)
 
-    process = add_displacedtauCHSTables(process, isMC)
+    # To be included when we have a working path to the displaced tau tagger cms-data
+    # process = add_displacedtauCHSTables(process, isMC)
 
     if isMC:
         process = update_genParticleTable(process)
