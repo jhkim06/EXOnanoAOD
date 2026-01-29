@@ -18,6 +18,10 @@
 <use name="boost"/>
 <use name="boost_program_options"/>
 <use name="boost_filesystem"/>
+<use name="clhep"/>
+<use name="DataFormats/PatCandidates"/>
+<use name="PhysicsTools/NanoAOD"/>
+<use name="FWCore/Utilities"/>
 <flags EDM_PLUGIN="1"/>
 <export>
   <lib name="1"/>
