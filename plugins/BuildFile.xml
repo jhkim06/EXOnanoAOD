@@ -2,6 +2,11 @@
 <use name="FWCore/Framework"/>
 <use name="FWCore/ParameterSet"/>
 <use name="FWCore/PluginManager"/>
+
+<use name="clhep"/>
+<use name="DataFormats/PatCandidates"/>
+<use name="PhysicsTools/NanoAOD"/>
+<use name="FWCore/Utilities"/>
 <flags EDM_PLUGIN="1"/>
 <export>
   <lib name="1"/>

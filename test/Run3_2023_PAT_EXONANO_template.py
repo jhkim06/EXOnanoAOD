@@ -150,7 +150,7 @@ from PhysicsTools.PatAlgos.slimming.miniAOD_tools import miniAOD_customizeAllMC
 process = miniAOD_customizeAllMC(process)
 
 # EXOnanoAOD customisation
-from PhysicsTools.EXOnanoAOD.custom_exonanoaod_template_cff import *
+from PhysicsTools.EXOnanoAOD.custom_exonanoaod_llp_cff import *
 
 # Replace template with customization
 process = add_customTables_template(process)
