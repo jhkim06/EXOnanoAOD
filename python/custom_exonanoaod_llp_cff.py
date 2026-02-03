@@ -3,7 +3,11 @@ from PhysicsTools.NanoAOD.common_cff import *
 
 myPhotonTable = cms.EDProducer(
     "KNULLPProducer",
-    src = cms.InputTag("linkedObjects", "photons")
+    src = cms.InputTag("linkedObjects", "photons"),
+    photons = cms.VInputTag(
+        cms.InputTag("slimmedPhotons"),
+        cms.InputTag("slimmedOOTPhotons"),
+    )
 )
 
 def add_customTables_template(process):
