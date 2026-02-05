@@ -8,170 +8,228 @@
 #include "DataFormats/NanoAOD/interface/FlatTable.h"
 
 struct PhoVars {
+  // --- counters/bookkeeping ---
+  std::vector<uint8_t> isStandardPhoton;  // you set false for OOT group in old code (if you want)
+  std::vector<uint8_t> passEleVeto;
+  std::vector<uint8_t> isConversion;
+  std::vector<uint8_t> hasPixelSeed;
+
   // --- kinematics ---
+  std::vector<float> E;
   std::vector<float> pt;
   std::vector<float> eta;
   std::vector<float> phi;
-  std::vector<float> energy;
+  std::vector<float> px;
+  std::vector<float> py;
+  std::vector<float> pz;
 
-  // --- supercluster ---
-  std::vector<float> scEnergy;
-  std::vector<float> scEta;
-  std::vector<float> scPhi;
-  std::vector<float> scRawEnergy;
-  std::vector<float> scEtaWidth;
-  std::vector<float> scPhiWidth;
+  // --- shower shapes / ID-like ---
+  std::vector<float> sigmaIetaIeta;          // pho.see()
+  std::vector<float> full5x5SigmaIetaIeta;   // pho.full5x5_sigmaIetaIeta()
+  std::vector<float> r9;                     // pho.full5x5_r9()
+  std::vector<float> hOverE;                 // pho.hadTowOverEm()
 
-  // --- shower shapes (full5x5) ---
-  std::vector<float> r9;
-  std::vector<float> sigmaIetaIeta;
-  std::vector<float> sigmaIetaIphi;
-  std::vector<float> sigmaIphiIphi;
-  std::vector<float> e1x5;
-  std::vector<float> e2x5;
-  std::vector<float> e3x3;
-  std::vector<float> e5x5;
-  std::vector<float> sMajor;
-  std::vector<float> sMinor;
-
-  // --- H/E ---
-  std::vector<float> hOverE;
-
-  // --- isolation (PAT-level) ---
-  std::vector<float> ecalIso;
-  std::vector<float> hcalIso;
-  std::vector<float> trkIsoHollow;
-  std::vector<float> trkIsoSolid;
-
-  // --- flags ---
-  std::vector<uint8_t> isEB;
-  std::vector<uint8_t> isEE;
-  std::vector<uint8_t> passEleVeto;
-  std::vector<uint8_t> hasConversion;
   std::vector<uint8_t> isOOT;
 
+  // --- miniAOD isolation quantities ---
+  std::vector<float> pfIsoChargedHadronIso;          // pho.chargedHadronIso()
+  std::vector<float> pfIsoChargedHadronIsoWrongVtx;  // pho.chargedHadronIsoWrongVtx()
+  std::vector<float> pfIsoNeutralHadronIso;          // pho.neutralHadronIso()
+  std::vector<float> pfIsoPhotonIso;                 // pho.photonIso()
+  std::vector<float> pfIsoModFrixione;               // pho.getPflowIsolationVariables().modFrixione
+  std::vector<float> pfIsoSumPUPt;                   // pho.sumPUPt()
+
+  // --- PF cluster / track iso from pat::Photon ---
+  std::vector<float> ecalPFClusterIso;               // pho.ecalPFClusterIso()
+  std::vector<float> hcalPFClusterIso;               // pho.hcalPFClusterIso()
+  std::vector<float> trkSumPtHollowConeDR03;         // pho.trkSumPtHollowConeDR03()
+
+  // --- regression energy ---
+  std::vector<float> regressionE;                    // pho.getCorrectedEnergy( pho.getCandidateP4type() )
+  std::vector<float> regressionEUnc;                 // pho.getCorrectedEnergyError( pho.getCandidateP4type() )
+
+  // --- supercluster (through pho.superCluster()) ---
+  std::vector<float> scEnergy;
+  std::vector<float> scRawEnergy;
+  std::vector<float> scEta;
+  std::vector<float> scPhi;
+  std::vector<float> scX;
+  std::vector<float> scY;
+  std::vector<float> scZ;
+  std::vector<uint32_t> scSeedRawId;                 // pho.superCluster()->seed()->seed().rawId()
+
+  // --- optional: cutbased ID + MVA (stored on pat::Photon as IDs/user data) ---
+  std::vector<uint8_t> cutBasedID_loose;
+  std::vector<uint8_t> cutBasedID_medium;
+  std::vector<uint8_t> cutBasedID_tight;
+  std::vector<float> mvaValue;                       // pho.userFloat(...)
+  std::vector<int32_t> mvaCategory;                  // pho.userInt(...)
+
   explicit PhoVars(size_t n)
-      : pt(n, -999.f),
+      : isStandardPhoton(n, 1),
+        passEleVeto(n, 0),
+        isConversion(n, 0),
+        hasPixelSeed(n, 0),
+
+        E(n, -999.f),
+        pt(n, -999.f),
         eta(n, -999.f),
         phi(n, -999.f),
-        energy(n, -999.f),
+        px(n, -999.f),
+        py(n, -999.f),
+        pz(n, -999.f),
+
+        sigmaIetaIeta(n, -999.f),
+        full5x5SigmaIetaIeta(n, -999.f),
+        r9(n, -999.f),
+        hOverE(n, -999.f),
+
+	isOOT(n, 0),
+
+        pfIsoChargedHadronIso(n, -999.f),
+        pfIsoChargedHadronIsoWrongVtx(n, -999.f),
+        pfIsoNeutralHadronIso(n, -999.f),
+        pfIsoPhotonIso(n, -999.f),
+        pfIsoModFrixione(n, -999.f),
+        pfIsoSumPUPt(n, -999.f),
+
+        ecalPFClusterIso(n, -999.f),
+        hcalPFClusterIso(n, -999.f),
+        trkSumPtHollowConeDR03(n, -999.f),
+
+        regressionE(n, -999.f),
+        regressionEUnc(n, -999.f),
+
         scEnergy(n, -999.f),
+        scRawEnergy(n, -999.f),
         scEta(n, -999.f),
         scPhi(n, -999.f),
-        scRawEnergy(n, -999.f),
-        scEtaWidth(n, -999.f),
-        scPhiWidth(n, -999.f),
-        r9(n, -999.f),
-        sigmaIetaIeta(n, -999.f),
-        sigmaIetaIphi(n, -999.f),
-        sigmaIphiIphi(n, -999.f),
-        e1x5(n, -999.f),
-        e2x5(n, -999.f),
-        e3x3(n, -999.f),
-        e5x5(n, -999.f),
-        sMajor(n, -999.f),
-        sMinor(n, -999.f),
-        hOverE(n, -999.f),
-        ecalIso(n, -999.f),
-        hcalIso(n, -999.f),
-        trkIsoHollow(n, -999.f),
-        trkIsoSolid(n, -999.f),
-        isEB(n, 0),
-        isEE(n, 0),
-        passEleVeto(n, 0),
-        hasConversion(n, 0),
-        isOOT(n, 0) {}
+        scX(n, -999.f),
+        scY(n, -999.f),
+        scZ(n, -999.f),
+        scSeedRawId(n, 0u),
+
+        cutBasedID_loose(n, 0),
+        cutBasedID_medium(n, 0),
+        cutBasedID_tight(n, 0),
+        mvaValue(n, -999.f),
+        mvaCategory(n, -999) {}
+
+  inline void fillFromPho(const pat::Photon& pho, size_t i) {
+    // kinematics
+    E[i]   = pho.energy();
+    pt[i]  = pho.pt();
+    eta[i] = pho.eta();
+    phi[i] = pho.phi();
+    px[i]  = pho.px();
+    py[i]  = pho.py();
+    pz[i]  = pho.pz();
+
+    // shapes / flags
+    sigmaIetaIeta[i]        = pho.see();
+    full5x5SigmaIetaIeta[i] = pho.full5x5_sigmaIetaIeta();
+    r9[i]                   = pho.full5x5_r9();
+    hOverE[i]               = pho.hadTowOverEm();
+
+    isConversion[i] = pho.hasConversionTracks();
+    passEleVeto[i]  = pho.passElectronVeto();
+    hasPixelSeed[i] = pho.hasPixelSeed();
+
+    // miniAOD iso quantities
+    pfIsoChargedHadronIso[i]         = pho.chargedHadronIso();
+    //pfIsoChargedHadronIsoWrongVtx[i] = pho.chargedHadronIsoWrongVtx();  // FIXME
+    pfIsoNeutralHadronIso[i]         = pho.neutralHadronIso();
+    pfIsoPhotonIso[i]                = pho.photonIso();
+    //pfIsoModFrixione[i]              = pho.getPflowIsolationVariables().modFrixione;  // FIXME
+    //pfIsoSumPUPt[i]                  = pho.sumPUPt();  // FIXME
+
+    // pat::Photon PF cluster / trk iso (if available in your release)
+    ecalPFClusterIso[i]       = pho.ecalPFClusterIso();
+    hcalPFClusterIso[i]       = pho.hcalPFClusterIso();
+    trkSumPtHollowConeDR03[i] = pho.trkSumPtHollowConeDR03();
+
+    // regression energy
+    regressionE[i]    = pho.getCorrectedEnergy( pho.getCandidateP4type() );
+    regressionEUnc[i] = pho.getCorrectedEnergyError( pho.getCandidateP4type() );
+
+    // supercluster
+    if (pho.superCluster().isNonnull()) {
+      const auto& sc = *pho.superCluster();
+      scEnergy[i]    = sc.energy();
+      scRawEnergy[i] = sc.rawEnergy();
+      scEta[i]       = sc.eta();
+      scPhi[i]       = sc.phi();
+      scX[i]         = sc.x();
+      scY[i]         = sc.y();
+      scZ[i]         = sc.z();
+
+      // seed rawId (guard all pointers)
+      if (sc.seed().isNonnull()) {
+        scSeedRawId[i] = sc.seed()->seed().rawId();
+      }
+    }
+  }
 };
 
-// -------------------- helpers --------------------
+// ---- NanoAOD column booking ----
 
-inline void fillPhoVars(const pat::Photon& p,
-                        PhoVars& v,
-                        size_t i) {
-  // kinematics
-  v.pt[i]     = p.pt();
-  v.eta[i]    = p.eta();
-  v.phi[i]    = p.phi();
-  v.energy[i] = p.energy();
-
-  // supercluster
-  if (p.superCluster().isNonnull()) {
-    const auto& sc = *p.superCluster();
-    v.scEnergy[i]    = sc.energy();
-    v.scEta[i]       = sc.eta();
-    v.scPhi[i]       = sc.phi();
-    v.scRawEnergy[i] = sc.rawEnergy();
-    v.scEtaWidth[i]  = sc.etaWidth();
-    v.scPhiWidth[i]  = sc.phiWidth();
-  }
-
-  // shower shapes
-  const auto& ss = p.full5x5_showerShapeVariables();
-//  v.r9[i]               = ss.r9;
-//  v.sigmaIetaIeta[i]    = ss.sigmaIetaIeta;
-//  v.sigmaIetaIphi[i]    = ss.sigmaIetaIphi;
-//  v.sigmaIphiIphi[i]    = ss.sigmaIphiIphi;
-//  v.e1x5[i]             = ss.e1x5;
-//  v.e2x5[i]             = ss.e2x5;
-//  v.e3x3[i]             = ss.e3x3;
-//  v.e5x5[i]             = ss.e5x5;
-  v.sMajor[i]           = ss.smMajor;
-  v.sMinor[i]           = ss.smMinor;
-
-  // H/E
-  v.hOverE[i] = p.hadronicOverEm();
-
-  // isolation
-  v.ecalIso[i]      = p.ecalRecHitSumEtConeDR04();
-  v.hcalIso[i]      = p.hcalTowerSumEtConeDR04();
-  v.trkIsoHollow[i] = p.trkSumPtHollowConeDR04();
-  v.trkIsoSolid[i]  = p.trkSumPtSolidConeDR04();
-
-  // flags
-  v.isEB[i]          = p.isEB();
-  v.isEE[i]          = p.isEE();
-  v.passEleVeto[i]   = p.passElectronVeto();
-  v.hasConversion[i] = p.hasConversionTracks();
-}
-
-// Book columns into a FlatTable (kept outside the struct = cleaner separation)
 inline void addPhoColumns(nanoaod::FlatTable& tab, const PhoVars& v) {
-  tab.addColumn<float>("pt", v.pt, "pT", 10);
+  // --- flags / bookkeeping ---
+  tab.addColumn<uint8_t>("isStandardPhoton", v.isStandardPhoton, "1 if in-time (standard) photon", -1);
+  tab.addColumn<uint8_t>("passEleVeto",      v.passEleVeto,      "1 if passElectronVeto()", -1);
+  tab.addColumn<uint8_t>("isConversion",     v.isConversion,     "1 if hasConversionTracks()", -1);
+  tab.addColumn<uint8_t>("hasPixelSeed",     v.hasPixelSeed,     "1 if hasPixelSeed()", -1);
+
+  // --- kinematics ---
+  tab.addColumn<float>("E",   v.E,   "energy()", 10);
+  tab.addColumn<float>("pt",  v.pt,  "pT", 10);
   tab.addColumn<float>("eta", v.eta, "eta", 10);
   tab.addColumn<float>("phi", v.phi, "phi", 10);
-  tab.addColumn<float>("energy", v.energy, "energy", 10);
+  tab.addColumn<float>("px",  v.px,  "px()", 10);
+  tab.addColumn<float>("py",  v.py,  "py()", 10);
+  tab.addColumn<float>("pz",  v.pz,  "pz()", 10);
 
-  tab.addColumn<float>("superclusterEnergy", v.scEnergy, "supercluster energy", 10);
-  tab.addColumn<float>("superclusterEta", v.scEta, "supercluster eta", 10);
-  tab.addColumn<float>("superclusterPhi", v.scPhi, "supercluster phi", 10);
-  tab.addColumn<float>("superclusterRawEnergy", v.scRawEnergy, "supercluster raw energy", 10);
-  tab.addColumn<float>("superclusterEtaWidth", v.scEtaWidth, "supercluster eta width", 10);
-  tab.addColumn<float>("superclusterPhiWidth", v.scPhiWidth, "supercluster phi width", 10);
-
-  //tab.addColumn<float>("r9", v.r9, "R9 (full5x5)", 10);
-  //tab.addColumn<float>("sieie", v.sigmaIetaIeta, "sigmaIetaIeta (full5x5)", 10);
-  //tab.addColumn<float>("sieip", v.sigmaIetaIphi, "sigmaIetaIphi (full5x5)", 10);
-  //tab.addColumn<float>("sipip", v.sigmaIphiIphi, "sigmaIphiIphi (full5x5)", 10);
-  //tab.addColumn<float>("e1x5", v.e1x5, "E1x5 (full5x5)", 10);
-  //tab.addColumn<float>("e2x5", v.e2x5, "E2x5 (full5x5)", 10);
-  //tab.addColumn<float>("e3x3", v.e3x3, "E3x3 (full5x5)", 10);
-  //tab.addColumn<float>("e5x5", v.e5x5, "E5x5 (full5x5)", 10);
-  tab.addColumn<float>("sMajor", v.sMajor, "shower shape sMajor (full5x5)", 10);
-  tab.addColumn<float>("sMinor", v.sMinor, "shower shape sMinor (full5x5)", 10);
-
-  tab.addColumn<float>("hOverE", v.hOverE, "hadronic over EM", 10);
-
-  tab.addColumn<float>("ecalIso", v.ecalIso, "ecalRecHitSumEtConeDR04", 10);
-  tab.addColumn<float>("hcalIso", v.hcalIso, "hcalTowerSumEtConeDR04", 10);
-  tab.addColumn<float>("trkIsoHollow", v.trkIsoHollow, "trkSumPtHollowConeDR04", 10);
-  tab.addColumn<float>("trkIsoSolid", v.trkIsoSolid, "trkSumPtSolidConeDR04", 10);
-
-  tab.addColumn<uint8_t>("isEB", v.isEB, "1 if EB", -1);
-  tab.addColumn<uint8_t>("isEE", v.isEE, "1 if EE", -1);
-  tab.addColumn<uint8_t>("passEleVeto", v.passEleVeto, "1 if pass electron veto", -1);
-  tab.addColumn<uint8_t>("hasConversion", v.hasConversion, "1 if has conversion tracks", -1);
+  // --- shower shapes / ID-like ---
+  tab.addColumn<float>("sigmaIetaIeta",        v.sigmaIetaIeta,        "see()", 10);
+  tab.addColumn<float>("full5x5SigmaIetaIeta", v.full5x5SigmaIetaIeta, "full5x5_sigmaIetaIeta()", 10);
+  tab.addColumn<float>("r9",                   v.r9,                   "full5x5_r9()", 10);
+  tab.addColumn<float>("hOverE",               v.hOverE,               "hadTowOverEm()", 10);
 
   tab.addColumn<uint8_t>("isOOT", v.isOOT, "1 if OOT", -1);
+
+  // --- miniAOD isolation quantities ---
+  tab.addColumn<float>("pfIsoChargedHadronIso",         v.pfIsoChargedHadronIso,         "chargedHadronIso()", 10);
+  tab.addColumn<float>("pfIsoChargedHadronIsoWrongVtx", v.pfIsoChargedHadronIsoWrongVtx, "chargedHadronIsoWrongVtx()", 10);
+  tab.addColumn<float>("pfIsoNeutralHadronIso",         v.pfIsoNeutralHadronIso,         "neutralHadronIso()", 10);
+  tab.addColumn<float>("pfIsoPhotonIso",                v.pfIsoPhotonIso,                "photonIso()", 10);
+  tab.addColumn<float>("pfIsoModFrixione",              v.pfIsoModFrixione,              "getPflowIsolationVariables().modFrixione", 10);
+  tab.addColumn<float>("pfIsoSumPUPt",                  v.pfIsoSumPUPt,                  "sumPUPt()", 10);
+
+  // --- pat::Photon PF cluster / track iso (as used in your fillPhotons) ---
+  tab.addColumn<float>("ecalPFClusterIso",       v.ecalPFClusterIso,       "ecalPFClusterIso()", 10);
+  tab.addColumn<float>("hcalPFClusterIso",       v.hcalPFClusterIso,       "hcalPFClusterIso()", 10);
+  tab.addColumn<float>("trkSumPtHollowConeDR03", v.trkSumPtHollowConeDR03, "trkSumPtHollowConeDR03()", 10);
+
+  // --- regression energy ---
+  tab.addColumn<float>("regressionE",    v.regressionE,    "getCorrectedEnergy(getCandidateP4type())", 10);
+  tab.addColumn<float>("regressionEUnc", v.regressionEUnc, "getCorrectedEnergyError(getCandidateP4type())", 10);
+
+  // --- supercluster ---
+  tab.addColumn<float>("superClusterEnergy",    v.scEnergy,    "superCluster()->energy()", 10);
+  tab.addColumn<float>("superClusterRawEnergy", v.scRawEnergy, "superCluster()->rawEnergy()", 10);
+  tab.addColumn<float>("superClusterEta",       v.scEta,       "superCluster()->eta()", 10);
+  tab.addColumn<float>("superClusterPhi",       v.scPhi,       "superCluster()->phi()", 10);
+  tab.addColumn<float>("superClusterX",         v.scX,         "superCluster()->x()", 10);
+  tab.addColumn<float>("superClusterY",         v.scY,         "superCluster()->y()", 10);
+  tab.addColumn<float>("superClusterZ",         v.scZ,         "superCluster()->z()", 10);
+  tab.addColumn<uint32_t>("superClusterSeedRawId", v.scSeedRawId, "superCluster()->seed()->seed().rawId()", -1);
+
+  // --- optional IDs / MVA (kept even if defaults when missing) ---
+  tab.addColumn<uint8_t>("cutBasedID_loose",  v.cutBasedID_loose,  "cutBased loose ID (if present)", -1);
+  tab.addColumn<uint8_t>("cutBasedID_medium", v.cutBasedID_medium, "cutBased medium ID (if present)", -1);
+  tab.addColumn<uint8_t>("cutBasedID_tight",  v.cutBasedID_tight,  "cutBased tight ID (if present)", -1);
+  tab.addColumn<float>("mvaValue",            v.mvaValue,          "userFloat PhotonMVAEstimator... (if present)", 10);
+  tab.addColumn<int32_t>("mvaCategory",       v.mvaCategory,       "userInt PhotonMVAEstimator... (if present)", -1);
 }
 
 #endif

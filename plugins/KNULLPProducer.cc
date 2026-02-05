@@ -142,7 +142,7 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 
             for (size_t i = 0; i < n_final_photons; ++i) {
                   const auto& p = *final_photons[i];
-                  fillPhoVars(p, vars, i);
+                  vars.fillFromPho(p, i);
                   vars.isOOT[i] = isOOT[i];
             }
 
