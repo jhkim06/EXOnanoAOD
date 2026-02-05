@@ -37,6 +37,7 @@ Example included for BeamSpot object.
 #include "FWCore/Utilities/interface/InputTag.h"
 
 #include "TLorentzVector.h"
+#include "PhysicsTools/EXOnanoAOD/interface/PhoVars.h"
 
 #define OBJECTARRAYSIZE 1000
 
@@ -85,14 +86,8 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
             tab->addColumn<float>("sMinor", sMinor, "ECAL shower shape sMinor (full5x5)", 10);
 
 
+            // TODO think if it is better to make a separate methode
             // slimmedPhoton and slimmedOOTPhoton
-
-            //float metType1Px = -99.0;
-            //float metType1Py = -99.0;
-            //float metType1Pt = -99.0;
-            //float metType1Phi = -99.0;
-
-            //int nPhotons_overlap = 0;
 
             edm::Handle<pat::PhotonCollection> itPhotons;
             edm::Handle<pat::PhotonCollection> ootPhotons;
@@ -140,25 +135,18 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
                 isOOT.push_back(1);
             }
 
+            // fill table
             const size_t n_final_photons = final_photons.size();
             auto final_photons_tab = std::make_unique<nanoaod::FlatTable>(n_final_photons, "pho", false, false);
-            std::vector<float> final_photons_pt(n_final_photons, -999.f);
-            std::vector<float> final_photons_sMajor(n_final_photons, -999.f);
-            std::vector<float> final_photons_sMinor(n_final_photons, -999.f);
+            PhoVars vars(n_final_photons);
 
-            for (size_t r = 0; r < n_final_photons; ++r) {
-                const auto& p = *final_photons[r];
-                final_photons_pt[r] = p.pt();
-
-                const auto& ss = p.full5x5_showerShapeVariables();
-                final_photons_sMajor[r] = ss.smMajor;
-                final_photons_sMinor[r] = ss.smMinor;
+            for (size_t i = 0; i < n_final_photons; ++i) {
+                  const auto& p = *final_photons[i];
+                  fillPhoVars(p, vars, i);
+                  vars.isOOT[i] = isOOT[i];
             }
 
-            final_photons_tab->addColumn<float>("pt", final_photons_pt, "pT", 10);
-            final_photons_tab->addColumn<float>("sMajor", final_photons_sMajor, "ECAL shower shape sMajor (full5x5)", 10);
-            final_photons_tab->addColumn<float>("sMinor", final_photons_sMinor, "ECAL shower shape sMinor (full5x5)", 10);
-            final_photons_tab->addColumn<uint8_t>("isOOT", isOOT, "1 if OOT", -1);
+            addPhoColumns(*final_photons_tab, vars);
 
             iEvent.put(std::move(tab), "Photon");  // this is just to check
             iEvent.put(std::move(final_photons_tab), "pho");
