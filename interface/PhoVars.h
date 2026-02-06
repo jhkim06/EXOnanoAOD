@@ -9,7 +9,7 @@
 
 struct PhoVars {
   // --- counters/bookkeeping ---
-  std::vector<uint8_t> isStandardPhoton;  // you set false for OOT group in old code (if you want)
+  std::vector<uint8_t> isStandardPhoton;  
   std::vector<uint8_t> passEleVeto;
   std::vector<uint8_t> isConversion;
   std::vector<uint8_t> hasPixelSeed;
@@ -19,9 +19,6 @@ struct PhoVars {
   std::vector<float> pt;
   std::vector<float> eta;
   std::vector<float> phi;
-  std::vector<float> px;
-  std::vector<float> py;
-  std::vector<float> pz;
 
   // --- shower shapes / ID-like ---
   std::vector<float> sigmaIetaIeta;          // pho.see()
@@ -65,6 +62,11 @@ struct PhoVars {
   std::vector<float> mvaValue;                       // pho.userFloat(...)
   std::vector<int32_t> mvaCategory;                  // pho.userInt(...)
 
+  std::vector<float> energy_scale;
+  std::vector<float> energy_scale_up;
+  std::vector<float> energy_scale_down;
+  std::vector<float> energy_smear;
+
   explicit PhoVars(size_t n)
       : isStandardPhoton(n, 1),
         passEleVeto(n, 0),
@@ -75,9 +77,6 @@ struct PhoVars {
         pt(n, -999.f),
         eta(n, -999.f),
         phi(n, -999.f),
-        px(n, -999.f),
-        py(n, -999.f),
-        pz(n, -999.f),
 
         sigmaIetaIeta(n, -999.f),
         full5x5SigmaIetaIeta(n, -999.f),
@@ -113,7 +112,12 @@ struct PhoVars {
         cutBasedID_medium(n, 0),
         cutBasedID_tight(n, 0),
         mvaValue(n, -999.f),
-        mvaCategory(n, -999) {}
+        mvaCategory(n, -999),
+
+        energy_scale(n, -999.f),
+        energy_scale_up(n, -999.f),
+        energy_scale_down(n, -999.f),
+        energy_smear(n, -999.f){}
 
   inline void fillFromPho(const pat::Photon& pho, size_t i) {
     // kinematics
@@ -121,12 +125,9 @@ struct PhoVars {
     pt[i]  = pho.pt();
     eta[i] = pho.eta();
     phi[i] = pho.phi();
-    px[i]  = pho.px();
-    py[i]  = pho.py();
-    pz[i]  = pho.pz();
 
     // shapes / flags
-    sigmaIetaIeta[i]        = pho.see();
+    sigmaIetaIeta[i]        = pho.see();  // FIXME this is always 0: slimmedPhotons_cfi.py:    dropRegressionData = cms.string("1"),
     full5x5SigmaIetaIeta[i] = pho.full5x5_sigmaIetaIeta();
     r9[i]                   = pho.full5x5_r9();
     hOverE[i]               = pho.hadTowOverEm();
@@ -137,11 +138,11 @@ struct PhoVars {
 
     // miniAOD iso quantities
     pfIsoChargedHadronIso[i]         = pho.chargedHadronIso();
-    //pfIsoChargedHadronIsoWrongVtx[i] = pho.chargedHadronIsoWrongVtx();  // FIXME
+    //pfIsoChargedHadronIsoWrongVtx[i] = pho.chargedHadronIsoWrongVtx();  // FIXME deprecated
     pfIsoNeutralHadronIso[i]         = pho.neutralHadronIso();
     pfIsoPhotonIso[i]                = pho.photonIso();
-    //pfIsoModFrixione[i]              = pho.getPflowIsolationVariables().modFrixione;  // FIXME
-    //pfIsoSumPUPt[i]                  = pho.sumPUPt();  // FIXME
+    //pfIsoModFrixione[i]              = pho.getPflowIsolationVariables().modFrixione;  // FIXME deprecated
+    //pfIsoSumPUPt[i]                  = pho.sumPUPt();  // FIXME deprecated
 
     // pat::Photon PF cluster / trk iso (if available in your release)
     ecalPFClusterIso[i]       = pho.ecalPFClusterIso();
@@ -151,6 +152,43 @@ struct PhoVars {
     // regression energy
     regressionE[i]    = pho.getCorrectedEnergy( pho.getCandidateP4type() );
     regressionEUnc[i] = pho.getCorrectedEnergyError( pho.getCandidateP4type() );
+
+    //std::cout << "photon ID: " << std::endl;
+    //for (auto const& n : pho.userFloatNames()) edm::LogPrint("KNULLP") << "  " << n;
+    //for (auto const& n : pho.userIntNames()) edm::LogPrint("KNULLP") << "  " << n;
+
+    try
+    {
+        // as saved in slimmedPhoton
+        cutBasedID_loose[i] = pho.photonID("cutBasedPhotonID-RunIIIWinter22-122X-V1-loose");  // 
+        cutBasedID_medium[i] = pho.photonID("cutBasedPhotonID-RunIIIWinter22-122X-V1-medium");
+        cutBasedID_tight[i] = pho.photonID("cutBasedPhotonID-RunIIIWinter22-122X-V1-tight");
+
+        mvaValue[i] = pho.userFloat("PhotonMVAEstimatorRunIIIWinter22v1Values");
+        mvaCategory[i] = pho.userInt("PhotonMVAEstimatorRunIIIWinter22v1Categories");
+    }
+    catch (...)
+    {
+        std::cout << "No Photon ID / MVA found." << std::endl;
+    }
+
+    try
+    {
+        // FIXME https://egammapog.docs.cern.ch/Run3/SaS/
+        // or Photon_energyErr?
+        energy_scale[i] = pho.userFloat("energyScaleValue");
+        energy_scale_up[i] = pho.userFloat("energyScaleUp");
+        energy_scale_down[i] = pho.userFloat("energyScaleDown");
+        energy_smear[i] = pho.userFloat("energySigmaValue");
+    }
+    catch (...)
+    {
+        std::cout << "No Photon scale found. Set it to 1." << std::endl;
+        energy_scale[i] = 1.0;
+        energy_scale_up[i] = 1.0;
+        energy_scale_down[i] = 1.0;
+        energy_smear[i] = 1.0;
+    }
 
     // supercluster
     if (pho.superCluster().isNonnull()) {
@@ -168,6 +206,30 @@ struct PhoVars {
         scSeedRawId[i] = sc.seed()->seed().rawId();
       }
     }
+    /*
+    TODO
+    float pho_sumChargedHadronPtAllVertices[OBJECTARRAYSIZE][MAX_NPV]; CALCULATE as in Razor
+    float pho_sumChargedHadronPt[OBJECTARRAYSIZE]; CALCULATE as in Razor
+    float pho_sumNeutralHadronEt[OBJECTARRAYSIZE]; CALCULATE as in Razor
+    float pho_sumPhotonEt[OBJECTARRAYSIZE]; CALCULATE as in Razor
+
+    float pho_sumWorstVertexChargedHadronPt[OBJECTARRAYSIZE]; CALCULATE as in Razor
+    float pho_IDMVA[OBJECTARRAYSIZE];  NOT properly filled in Razor also
+    bool pho_passHLTFilter[OBJECTARRAYSIZE]\[MAX_PhotonHLTFilters]; Check NanoAOD
+    int pho_convType[OBJECTARRAYSIZE]; CALCULATE as in Razor 
+    float pho_convTrkZ[OBJECTARRAYSIZE]; CALCULATE as in Razor 
+    float pho_convTrkClusZ[OBJECTARRAYSIZE]; CALCULATE as in Razor 
+    float pho_vtxSumPx[OBJECTARRAYSIZE][MAX_NPV]; CALCULATE as in Razor 
+    float pho_vtxSumPy[OBJECTARRAYSIZE][MAX_NPV]; CALCULATE as in Razor 
+    bool  pho_seedRecHitSwitchToGain6[OBJECTARRAYSIZE]; NOT properly filled in Razor also
+    bool  pho_seedRecHitSwitchToGain1[OBJECTARRAYSIZE]; NOT properly filled in Razor also
+    bool  pho_anyRecHitSwitchToGain6[OBJECTARRAYSIZE]; NOT properly filled in Razor also
+    bool  pho_anyRecHitSwitchToGain1[OBJECTARRAYSIZE]; NOT properly filled in Razor also
+    bool pho_trackMatching[OBJECTARRAYSIZE]; CALCULATE as in Razor
+    vector<vector\<uint>> pho_EcalRechitID;
+    vector<vector\<uint>> *pho_EcalRechitIndex;  
+    vector\<uint>  *pho_SeedRechitIndex; 
+    */
   }
 };
 
@@ -185,9 +247,6 @@ inline void addPhoColumns(nanoaod::FlatTable& tab, const PhoVars& v) {
   tab.addColumn<float>("pt",  v.pt,  "pT", 10);
   tab.addColumn<float>("eta", v.eta, "eta", 10);
   tab.addColumn<float>("phi", v.phi, "phi", 10);
-  tab.addColumn<float>("px",  v.px,  "px()", 10);
-  tab.addColumn<float>("py",  v.py,  "py()", 10);
-  tab.addColumn<float>("pz",  v.pz,  "pz()", 10);
 
   // --- shower shapes / ID-like ---
   tab.addColumn<float>("sigmaIetaIeta",        v.sigmaIetaIeta,        "see()", 10);
@@ -230,6 +289,11 @@ inline void addPhoColumns(nanoaod::FlatTable& tab, const PhoVars& v) {
   tab.addColumn<uint8_t>("cutBasedID_tight",  v.cutBasedID_tight,  "cutBased tight ID (if present)", -1);
   tab.addColumn<float>("mvaValue",            v.mvaValue,          "userFloat PhotonMVAEstimator... (if present)", 10);
   tab.addColumn<int32_t>("mvaCategory",       v.mvaCategory,       "userInt PhotonMVAEstimator... (if present)", -1);
+
+  tab.addColumn<float>("energy_scale",       v.energy_scale,       "userFloat energy_scale... (if present)", 10);
+  tab.addColumn<float>("energy_scale_up",       v.energy_scale_up,       "userFloat energy_scale_up... (if present)", 10);
+  tab.addColumn<float>("energy_scale_down",       v.energy_scale_down,       "userFloat energy_scale_down... (if present)", 10);
+  tab.addColumn<float>("energy_smear",       v.energy_smear,       "userFloat energy_smear... (if present)", 10);
 }
 
 #endif
