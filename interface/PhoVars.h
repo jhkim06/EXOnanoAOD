@@ -49,6 +49,7 @@ struct PhoVars {
   std::vector<float> ecalPFClusterIso;               // pho.ecalPFClusterIso()
   std::vector<float> hcalPFClusterIso;               // pho.hcalPFClusterIso()
   std::vector<float> trkSumPtHollowConeDR03;         // pho.trkSumPtHollowConeDR03()
+  std::vector<float> sumWorstVertexChargedHadronPt;               // 
 
   // --- regression energy ---
   std::vector<float> regressionE;                    // pho.getCorrectedEnergy( pho.getCandidateP4type() )
@@ -130,6 +131,7 @@ struct PhoVars {
     ecalPFClusterIso.assign(n, -999.f);
     hcalPFClusterIso.assign(n, -999.f);
     trkSumPtHollowConeDR03.assign(n, -999.f);
+    sumWorstVertexChargedHadronPt.assign(n, -999.f);
 
     // regression
     regressionE.assign(n, -999.f);
@@ -207,6 +209,7 @@ struct PhoVars {
     ecalPFClusterIso.clear();
     hcalPFClusterIso.clear();
     trkSumPtHollowConeDR03.clear();
+    sumWorstVertexChargedHadronPt.clear();
 
     // regression
     regressionE.clear();
@@ -336,8 +339,6 @@ struct PhoVars {
     float pho_vtxSumPx[OBJECTARRAYSIZE][MAX_NPV]; CALCULATE as in Razor, Note 2D vector not supported in FlatTable
     float pho_vtxSumPy[OBJECTARRAYSIZE][MAX_NPV]; CALCULATE as in Razor, Note 2D vector not supported in FlatTable
 
-    float pho_sumWorstVertexChargedHadronPt[OBJECTARRAYSIZE]; CALCULATE as in Razor
-
     vector<vector<uint>> pho_EcalRechitID;
     vector<vector<uint>> *pho_EcalRechitIndex;
     vector<uint>  pho_SeedRechitID;
@@ -387,6 +388,7 @@ inline void addPhoColumns(nanoaod::FlatTable& tab, const PhoVars& v) {
   tab.addColumn<float>("ecalPFClusterIso",       v.ecalPFClusterIso,       "ecalPFClusterIso()", 10);
   tab.addColumn<float>("hcalPFClusterIso",       v.hcalPFClusterIso,       "hcalPFClusterIso()", 10);
   tab.addColumn<float>("trkSumPtHollowConeDR03", v.trkSumPtHollowConeDR03, "trkSumPtHollowConeDR03()", 10);
+  tab.addColumn<float>("sumWorstVertexChargedHadronPt",       v.sumWorstVertexChargedHadronPt,       "", 10);
 
   // --- regression energy ---
   tab.addColumn<float>("regressionE",    v.regressionE,    "getCorrectedEnergy(getCandidateP4type())", 10);

@@ -166,6 +166,59 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 		vars_.sumChargedHadronPt[photon_index] = chargedIsoSum;
 		vars_.sumNeutralHadronEt[photon_index] = neutralHadronIsoSum;
 		vars_.sumPhotonEt[photon_index] = photonIsoSum;
+
+            //*****************************************************************
+            //Compute Worst Isolation Looping over all vertices
+            //*****************************************************************
+            const double ptMin = 0.0;
+            const float dRvetoBarrel = 0.0;
+            const float dRvetoEndcap = 0.0;    
+            float dRveto = 0;
+            if (pho.isEB()) dRveto = dRvetoBarrel;
+            else dRveto = dRvetoEndcap;
+
+            float worstIsolation = 999;
+            std::vector<float> allIsolations;
+            for(unsigned int ivtx=0; ivtx<vertices.size(); ++ivtx) 
+            {
+
+                // Shift the photon according to the vertex
+                reco::VertexRef vtx(&vertices, ivtx);
+                math::XYZVector photon_directionWrtVtx(pho.superCluster()->x() - vtx->x(),
+                        pho.superCluster()->y() - vtx->y(),
+                        pho.superCluster()->z() - vtx->z());
+
+                float sum = 0;
+                // Loop over all PF candidates
+                for (const pat::PackedCandidate &candidate : packedPFCands) 
+                {
+                    //require that PFCandidate is a charged hadron
+                    const int pdgId = candidate.pdgId();
+                    if( abs(pdgId) != 211) continue;
+
+                    if (candidate.pt() < ptMin)
+                        continue;
+
+                    float dxy = -999, dz = -999;
+                    dz = candidate.dz(myPV->position());
+                    dxy =candidate.dxy(myPV->position());
+                    if( fabs(dxy) > dxyMax) continue;     
+                    if ( fabs(dz) > dzMax) continue;
+
+                    float dR = deltaR(photon_directionWrtVtx.Eta(), photon_directionWrtVtx.Phi(), 
+                            candidate.eta(),      candidate.phi());
+                    if(dR > coneSizeDR || dR < dRveto) continue;
+
+                    sum += candidate.pt();
+                }
+
+                allIsolations.push_back(sum);
+            }
+
+            if( allIsolations.size()>0 )
+                worstIsolation = * std::max_element( allIsolations.begin(), allIsolations.end() );
+
+            vars_.sumWorstVertexChargedHadronPt[photon_index] = worstIsolation;
 	}
 
 	void produce(edm::Event& iEvent, edm::EventSetup const&) override {
