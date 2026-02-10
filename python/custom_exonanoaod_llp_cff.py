@@ -14,6 +14,9 @@ myPhotonTable = cms.EDProducer(
     vertices = cms.InputTag("offlineSlimmedPrimaryVertices"),
     packedPfCands = cms.InputTag("packedPFCandidates"),
     tracks = cms.InputTag("unpackedTracksAndVertices"),
+    conversions = cms.InputTag("reducedEgamma", "reducedConversions"),  # "PAT" used in Razor
+    singleLegConversions = cms.InputTag("reducedEgamma", "reducedSingleLegConversions"),  # "PAT" used in Razor
+    beamSpot = cms.InputTag("offlineBeamSpot"),
 )
 
 def add_customTables_template(process):

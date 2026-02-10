@@ -76,6 +76,11 @@ struct PhoVars {
   std::vector<float> energy_scale_down;
   std::vector<float> energy_smear;
 
+  std::vector<int32_t> convType;                  // 
+  std::vector<float> convTrkZ;
+  std::vector<float> convTrkClusZ;
+    
+
   PhoVars() = default;
 
   explicit PhoVars(size_t n) {
@@ -152,6 +157,10 @@ struct PhoVars {
     energy_scale_up.assign(n, -999.f);
     energy_scale_down.assign(n, -999.f);
     energy_smear.assign(n, -999.f);
+
+    convType.assign(n, -99);
+    convTrkZ.assign(n, -99.f);
+    convTrkClusZ.assign(n, -99.f);
   }
 
 
@@ -225,6 +234,10 @@ struct PhoVars {
     energy_scale_up.clear();
     energy_scale_down.clear();
     energy_smear.clear();
+
+    convType.clear();
+    convTrkZ.clear();
+    convTrkClusZ.clear();
   }
 
   inline void fillFromPho(const pat::Photon& pho, size_t i) {
@@ -323,11 +336,7 @@ struct PhoVars {
     float pho_vtxSumPx[OBJECTARRAYSIZE][MAX_NPV]; CALCULATE as in Razor, Note 2D vector not supported in FlatTable
     float pho_vtxSumPy[OBJECTARRAYSIZE][MAX_NPV]; CALCULATE as in Razor, Note 2D vector not supported in FlatTable
 
-    bool pho_trackMatching[OBJECTARRAYSIZE]; CALCULATE as in Razor
     float pho_sumWorstVertexChargedHadronPt[OBJECTARRAYSIZE]; CALCULATE as in Razor
-    int pho_convType[OBJECTARRAYSIZE]; CALCULATE as in Razor
-    float pho_convTrkZ[OBJECTARRAYSIZE]; CALCULATE as in Razor 
-    float pho_convTrkClusZ[OBJECTARRAYSIZE]; CALCULATE as in Razor
 
     vector<vector<uint>> pho_EcalRechitID;
     vector<vector<uint>> *pho_EcalRechitIndex;
@@ -404,6 +413,10 @@ inline void addPhoColumns(nanoaod::FlatTable& tab, const PhoVars& v) {
   tab.addColumn<float>("energy_scale_up",       v.energy_scale_up,       "userFloat energy_scale_up... (if present)", 10);
   tab.addColumn<float>("energy_scale_down",       v.energy_scale_down,       "userFloat energy_scale_down... (if present)", 10);
   tab.addColumn<float>("energy_smear",       v.energy_smear,       "userFloat energy_smear... (if present)", 10);
+
+  tab.addColumn<int32_t>("convType",       v.convType,       "", -1);
+  tab.addColumn<float>("convTrkZ",    v.convTrkZ,    "", 10);
+  tab.addColumn<float>("convTrkClusZ",    v.convTrkClusZ,    "", 10);
 }
 
 #endif
