@@ -59,7 +59,8 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	token_(consumes<edm::View<pat::Photon>>(src_)),
 	v_photonsInputTag_(cfg.getParameter<std::vector<edm::InputTag>>("photons")),
 	verticesToken_(consumes<reco::VertexCollection>(cfg.getParameter<edm::InputTag>("vertices"))),
-	packedPFCandsToken_(consumes<pat::PackedCandidateCollection>(cfg.getParameter<edm::InputTag>("packedPfCands")))
+	packedPFCandsToken_(consumes<pat::PackedCandidateCollection>(cfg.getParameter<edm::InputTag>("packedPfCands"))),
+        tracksToken_(consumes<reco::TrackCollection>(cfg.getParameter<edm::InputTag>("tracks")))
 	{
 		produces<nanoaod::FlatTable>("Photon");
 		produces<nanoaod::FlatTable>("pho");
@@ -196,12 +197,14 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	    edm::Handle<pat::PhotonCollection> ootPhotons;
 	    edm::Handle<reco::VertexCollection> vertices;
 	    edm::Handle<pat::PackedCandidateCollection> packedPFCands;
+	    edm::Handle<reco::TrackCollection> tracks;
 
 	    iEvent.getByToken(v_photonsToken_[0], itPhotons);
 	    iEvent.getByToken(v_photonsToken_[1], ootPhotons);
 
 	    iEvent.getByToken(verticesToken_, vertices);
 	    iEvent.getByToken(packedPFCandsToken_, packedPFCands);
+            iEvent.getByToken(tracksToken_, tracks);
 
 	    //select the primary vertex, if any
 	    nPV = 0; 
@@ -210,9 +213,9 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	    bool foundPV = false;
 	    for(unsigned int i = 0; i < vertices->size(); i++) {
 	    	if(vertices->at(i).isValid() && !vertices->at(i).isFake()) {
-	    		if (!foundPV) {
-	    			myPV = &(vertices->at(i));
-	    			foundPV = true;
+	    	        if (!foundPV) {
+                            myPV = &(vertices->at(i));
+	    		    foundPV = true;
 	    		}
 	    		nPV++;
 	    	}
@@ -269,10 +272,22 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	    	const auto& pho = *final_photons[i];
 	    	vars_.fillFromPho(pho, i);
 	    	vars_.isOOT[i] = isOOT[i];
+
+		//**************************************************************************
+		//Veto photons that overlap with tracks
+		//**************************************************************************
+		bool closeToTrack = false;
+		for (const auto & track : *tracks)
+		{
+		    if (track.pt() < 5) continue;
+		    if (reco::deltaR(pho, track) < 0.2) closeToTrack = true;
+		}
+		vars_.trackMatching[i] = closeToTrack;
+
 	    	fillPFIsoVar(pho, i, *packedPFCands, *vertices);
 	    } // n_final_photons
 
-		addPhoColumns(*final_photons_tab, vars_);
+	    addPhoColumns(*final_photons_tab, vars_);
 
 	    // test
 	    auto razor_event = std::make_unique<nanoaod::FlatTable>(1, "Razor", /*singleton=*/true, /*extension=*/false);
@@ -292,9 +307,9 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	std::vector<edm::InputTag> v_photonsInputTag_;
 	std::vector<edm::EDGetTokenT<pat::PhotonCollection>> v_photonsToken_;
 
-	//edm::InputTag vertices_;
 	edm::EDGetTokenT<reco::VertexCollection> verticesToken_;
 	edm::EDGetTokenT<pat::PackedCandidateCollection> packedPFCandsToken_;
+        edm::EDGetTokenT<reco::TrackCollection> tracksToken_;
 
 	int nPV;
 	int nPVAll;

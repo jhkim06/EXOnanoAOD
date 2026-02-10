@@ -12,10 +12,12 @@
 // photon related table (different size)
 struct PhoVars {
   // --- counters/bookkeeping ---
-  std::vector<uint8_t> isStandardPhoton;  
+  std::vector<uint8_t> isStandardPhoton;
   std::vector<uint8_t> passEleVeto;
   std::vector<uint8_t> isConversion;
   std::vector<uint8_t> hasPixelSeed;
+
+  std::vector<uint8_t> trackMatching;
 
   // --- kinematics ---
   std::vector<float> E;
@@ -74,150 +76,156 @@ struct PhoVars {
   std::vector<float> energy_scale_down;
   std::vector<float> energy_smear;
 
+  PhoVars() = default;
 
- PhoVars() = default;
-
-  explicit PhoVars(size_t n){
-	resize(n);
+  explicit PhoVars(size_t n) {
+    resize(n);
   }
 
   void resize(size_t n) {
-  // bool / uint8-like flags
-  isStandardPhoton.assign(n, 1);
-  passEleVeto.assign(n, 0);
-  isConversion.assign(n, 0);
-  hasPixelSeed.assign(n, 0);
 
-  // kinematics
-  E.assign(n, -999.f);
-  pt.assign(n, -999.f);
-  eta.assign(n, -999.f);
-  phi.assign(n, -999.f);
+    // bool / uint8-like flags
+    isStandardPhoton.assign(n, 1);
+    passEleVeto.assign(n, 0);
+    isConversion.assign(n, 0);
+    hasPixelSeed.assign(n, 0);
 
-  // shapes / ID-like floats
-  sigmaIetaIeta.assign(n, -999.f);
-  full5x5SigmaIetaIeta.assign(n, -999.f);
-  r9.assign(n, -999.f);
-  hOverE.assign(n, -999.f);
+    trackMatching.assign(n, 0);
 
-  // oot flag
-  isOOT.assign(n, 0);
+    // kinematics
+    E.assign(n, -999.f);
+    pt.assign(n, -999.f);
+    eta.assign(n, -999.f);
+    phi.assign(n, -999.f);
 
-  // miniAOD PF isolations
-  pfIsoChargedHadronIso.assign(n, -999.f);
-  pfIsoChargedHadronIsoWrongVtx.assign(n, -999.f);
-  pfIsoNeutralHadronIso.assign(n, -999.f);
-  pfIsoPhotonIso.assign(n, -999.f);
-  pfIsoModFrixione.assign(n, -999.f);
-  pfIsoSumPUPt.assign(n, -999.f);
+    // shapes / ID-like floats
+    sigmaIetaIeta.assign(n, -999.f);
+    full5x5SigmaIetaIeta.assign(n, -999.f);
+    r9.assign(n, -999.f);
+    hOverE.assign(n, -999.f);
 
-  // 2D (flattened) optional
-  // sumChargedHadronPtAllVertices.assign(n * npv, -999.f);
+    // oot flag
+    isOOT.assign(n, 0);
 
-  // other isolations
-  sumChargedHadronPt.assign(n, -999.f);
-  sumNeutralHadronEt.assign(n, -999.f);
-  sumPhotonEt.assign(n, -999.f);
-  ecalPFClusterIso.assign(n, -999.f);
-  hcalPFClusterIso.assign(n, -999.f);
-  trkSumPtHollowConeDR03.assign(n, -999.f);
+    // miniAOD PF isolations
+    pfIsoChargedHadronIso.assign(n, -999.f);
+    pfIsoChargedHadronIsoWrongVtx.assign(n, -999.f);
+    pfIsoNeutralHadronIso.assign(n, -999.f);
+    pfIsoPhotonIso.assign(n, -999.f);
+    pfIsoModFrixione.assign(n, -999.f);
+    pfIsoSumPUPt.assign(n, -999.f);
 
-  // regression
-  regressionE.assign(n, -999.f);
-  regressionEUnc.assign(n, -999.f);
+    // 2D (flattened) optional
+    // sumChargedHadronPtAllVertices.assign(n * npv, -999.f);
 
-  // supercluster
-  scEnergy.assign(n, -999.f);
-  scRawEnergy.assign(n, -999.f);
-  scEta.assign(n, -999.f);
-  scPhi.assign(n, -999.f);
-  scX.assign(n, -999.f);
-  scY.assign(n, -999.f);
-  scZ.assign(n, -999.f);
-  scSeedRawId.assign(n, 0u);
+    // other isolations
+    sumChargedHadronPt.assign(n, -999.f);
+    sumNeutralHadronEt.assign(n, -999.f);
+    sumPhotonEt.assign(n, -999.f);
+    ecalPFClusterIso.assign(n, -999.f);
+    hcalPFClusterIso.assign(n, -999.f);
+    trkSumPtHollowConeDR03.assign(n, -999.f);
 
-  // VID / MVA
-  cutBasedID_loose.assign(n, 0);
-  cutBasedID_medium.assign(n, 0);
-  cutBasedID_tight.assign(n, 0);
-  mvaValue.assign(n, -999.f);
-  mvaCategory.assign(n, -999);
+    // regression
+    regressionE.assign(n, -999.f);
+    regressionEUnc.assign(n, -999.f);
 
-  // scales/smears
-  energy_scale.assign(n, -999.f);
-  energy_scale_up.assign(n, -999.f);
-  energy_scale_down.assign(n, -999.f);
-  energy_smear.assign(n, -999.f);
-}
+    // supercluster
+    scEnergy.assign(n, -999.f);
+    scRawEnergy.assign(n, -999.f);
+    scEta.assign(n, -999.f);
+    scPhi.assign(n, -999.f);
+    scX.assign(n, -999.f);
+    scY.assign(n, -999.f);
+    scZ.assign(n, -999.f);
+    scSeedRawId.assign(n, 0u);
 
-void clear() {
-  // bool / uint8-like flags
-  isStandardPhoton.clear();
-  passEleVeto.clear();
-  isConversion.clear();
-  hasPixelSeed.clear();
+    // VID / MVA
+    cutBasedID_loose.assign(n, 0);
+    cutBasedID_medium.assign(n, 0);
+    cutBasedID_tight.assign(n, 0);
+    mvaValue.assign(n, -999.f);
+    mvaCategory.assign(n, -999);
 
-  // kinematics
-  E.clear();
-  pt.clear();
-  eta.clear();
-  phi.clear();
+    //  scales/smears
+    energy_scale.assign(n, -999.f);
+    energy_scale_up.assign(n, -999.f);
+    energy_scale_down.assign(n, -999.f);
+    energy_smear.assign(n, -999.f);
+  }
 
-  // shapes / ID-like floats
-  sigmaIetaIeta.clear();
-  full5x5SigmaIetaIeta.clear();
-  r9.clear();
-  hOverE.clear();
 
-  // oot flag
-  isOOT.clear();
+  void clear() {
 
-  // miniAOD PF isolations
-  pfIsoChargedHadronIso.clear();
-  pfIsoChargedHadronIsoWrongVtx.clear();
-  pfIsoNeutralHadronIso.clear();
-  pfIsoPhotonIso.clear();
-  pfIsoModFrixione.clear();
-  pfIsoSumPUPt.clear();
+    // bool / uint8-like flags
+    isStandardPhoton.clear();
+    passEleVeto.clear();
+    isConversion.clear();
+    hasPixelSeed.clear();
 
-  // optional flattened 2D
-  // sumChargedHadronPtAllVertices.clear();
+    trackMatching.clear();
 
-  // other isolations
-  sumChargedHadronPt.clear();
-  sumNeutralHadronEt.clear();
-  sumPhotonEt.clear();
-  ecalPFClusterIso.clear();
-  hcalPFClusterIso.clear();
-  trkSumPtHollowConeDR03.clear();
+    // kinematics
+    E.clear();
+    pt.clear();
+    eta.clear();
+    phi.clear();
 
-  // regression
-  regressionE.clear();
-  regressionEUnc.clear();
+    // shapes / ID-like floats
+    sigmaIetaIeta.clear();
+    full5x5SigmaIetaIeta.clear();
+    r9.clear();
+    hOverE.clear();
 
-  // supercluster
-  scEnergy.clear();
-  scRawEnergy.clear();
-  scEta.clear();
-  scPhi.clear();
-  scX.clear();
-  scY.clear();
-  scZ.clear();
-  scSeedRawId.clear();
+    // oot flag
+    isOOT.clear();
 
-  // VID / MVA
-  cutBasedID_loose.clear();
-  cutBasedID_medium.clear();
-  cutBasedID_tight.clear();
-  mvaValue.clear();
-  mvaCategory.clear();
+    // miniAOD PF isolations
+    pfIsoChargedHadronIso.clear();
+    pfIsoChargedHadronIsoWrongVtx.clear();
+    pfIsoNeutralHadronIso.clear();
+    pfIsoPhotonIso.clear();
+    pfIsoModFrixione.clear();
+    pfIsoSumPUPt.clear();
 
-  // scales/smears
-  energy_scale.clear();
-  energy_scale_up.clear();
-  energy_scale_down.clear();
-  energy_smear.clear();
-}
+    // optional flattened 2D
+    // sumChargedHadronPtAllVertices.clear();
+
+    // other isolations
+    sumChargedHadronPt.clear();
+    sumNeutralHadronEt.clear();
+    sumPhotonEt.clear();
+    ecalPFClusterIso.clear();
+    hcalPFClusterIso.clear();
+    trkSumPtHollowConeDR03.clear();
+
+    // regression
+    regressionE.clear();
+    regressionEUnc.clear();
+
+    // supercluster
+    scEnergy.clear();
+    scRawEnergy.clear();
+    scEta.clear();
+    scPhi.clear();
+    scX.clear();
+    scY.clear();
+    scZ.clear();
+    scSeedRawId.clear();
+
+    // VID / MVA
+    cutBasedID_loose.clear();
+    cutBasedID_medium.clear();
+    cutBasedID_tight.clear();
+    mvaValue.clear();
+    mvaCategory.clear();
+
+    // scales/smears
+    energy_scale.clear();
+    energy_scale_up.clear();
+    energy_scale_down.clear();
+    energy_smear.clear();
+  }
 
   inline void fillFromPho(const pat::Photon& pho, size_t i) {
     // kinematics
@@ -259,35 +267,37 @@ void clear() {
 
     try
     {
-        // as saved in slimmedPhoton
-        cutBasedID_loose[i] = pho.photonID("cutBasedPhotonID-RunIIIWinter22-122X-V1-loose");  // 
-        cutBasedID_medium[i] = pho.photonID("cutBasedPhotonID-RunIIIWinter22-122X-V1-medium");
-        cutBasedID_tight[i] = pho.photonID("cutBasedPhotonID-RunIIIWinter22-122X-V1-tight");
+      // as saved in slimmedPhoton
+      cutBasedID_loose[i] = pho.photonID("cutBasedPhotonID-RunIIIWinter22-122X-V1-loose");  //
+      cutBasedID_medium[i] = pho.photonID("cutBasedPhotonID-RunIIIWinter22-122X-V1-medium");
+      cutBasedID_tight[i] = pho.photonID("cutBasedPhotonID-RunIIIWinter22-122X-V1-tight");
 
-        mvaValue[i] = pho.userFloat("PhotonMVAEstimatorRunIIIWinter22v1Values");
-        mvaCategory[i] = pho.userInt("PhotonMVAEstimatorRunIIIWinter22v1Categories");
+      mvaValue[i] = pho.userFloat("PhotonMVAEstimatorRunIIIWinter22v1Values");
+      mvaCategory[i] = pho.userInt("PhotonMVAEstimatorRunIIIWinter22v1Categories");
     }
     catch (...)
     {
-        std::cout << "No Photon ID / MVA found." << std::endl;
+      std::cout << "No Photon ID / MVA found." << std::endl;
     }
 
     try
     {
-        // FIXME https://egammapog.docs.cern.ch/Run3/SaS/
-        // or Photon_energyErr?
-        energy_scale[i] = pho.userFloat("energyScaleValue");
-        energy_scale_up[i] = pho.userFloat("energyScaleUp");
-        energy_scale_down[i] = pho.userFloat("energyScaleDown");
-        energy_smear[i] = pho.userFloat("energySigmaValue");
+
+      // FIXME https://egammapog.docs.cern.ch/Run3/SaS/
+      // or Photon_energyErr?
+      energy_scale[i] = pho.userFloat("energyScaleValue");
+      energy_scale_up[i] = pho.userFloat("energyScaleUp");
+      energy_scale_down[i] = pho.userFloat("energyScaleDown");
+      energy_smear[i] = pho.userFloat("energySigmaValue");
     }
     catch (...)
     {
-        std::cout << "No Photon scale found. Set it to 1." << std::endl;
-        energy_scale[i] = 1.0;
-        energy_scale_up[i] = 1.0;
-        energy_scale_down[i] = 1.0;
-        energy_smear[i] = 1.0;
+
+      std::cout << "No Photon scale found. Set it to 1." << std::endl;
+      energy_scale[i] = 1.0;
+      energy_scale_up[i] = 1.0;
+      energy_scale_down[i] = 1.0;
+      energy_smear[i] = 1.0;
     }
 
     // supercluster
@@ -308,38 +318,35 @@ void clear() {
     }
     /*
     TODO
-    float pho_sumChargedHadronPtAllVertices[OBJECTARRAYSIZE][MAX_NPV]; CALCULATE as in Razor
-
-    float pho_sumWorstVertexChargedHadronPt[OBJECTARRAYSIZE]; CALCULATE as in Razor
-    bool pho_passHLTFilter[OBJECTARRAYSIZE]\[MAX_PhotonHLTFilters]; Check NanoAOD
-    int pho_convType[OBJECTARRAYSIZE]; CALCULATE as in Razor 
-    float pho_convTrkZ[OBJECTARRAYSIZE]; CALCULATE as in Razor 
-    float pho_convTrkClusZ[OBJECTARRAYSIZE]; CALCULATE as in Razor 
-    float pho_vtxSumPx[OBJECTARRAYSIZE][MAX_NPV]; CALCULATE as in Razor 
-    float pho_vtxSumPy[OBJECTARRAYSIZE][MAX_NPV]; CALCULATE as in Razor 
-
-    float pho_IDMVA[OBJECTARRAYSIZE];  NOT properly filled in Razor also
-    bool  pho_seedRecHitSwitchToGain6[OBJECTARRAYSIZE]; NOT properly filled in Razor also
-    bool  pho_seedRecHitSwitchToGain1[OBJECTARRAYSIZE]; NOT properly filled in Razor also
-    bool  pho_anyRecHitSwitchToGain6[OBJECTARRAYSIZE]; NOT properly filled in Razor also
-    bool  pho_anyRecHitSwitchToGain1[OBJECTARRAYSIZE]; NOT properly filled in Razor also
+    float pho_sumChargedHadronPtAllVertices[OBJECTARRAYSIZE][MAX_NPV]; CALCULATE as in Razor, Note 2D vector not supported in FlatTable
+    bool pho_passHLTFilter[OBJECTARRAYSIZE][MAX_PhotonHLTFilters];  Note 2D vector not supported in FlatTable
+    float pho_vtxSumPx[OBJECTARRAYSIZE][MAX_NPV]; CALCULATE as in Razor, Note 2D vector not supported in FlatTable
+    float pho_vtxSumPy[OBJECTARRAYSIZE][MAX_NPV]; CALCULATE as in Razor, Note 2D vector not supported in FlatTable
 
     bool pho_trackMatching[OBJECTARRAYSIZE]; CALCULATE as in Razor
-    vector<vector\<uint>> pho_EcalRechitID;
-    vector<vector\<uint>> *pho_EcalRechitIndex;  
-    vector\<uint>  *pho_SeedRechitIndex; 
+    float pho_sumWorstVertexChargedHadronPt[OBJECTARRAYSIZE]; CALCULATE as in Razor
+    int pho_convType[OBJECTARRAYSIZE]; CALCULATE as in Razor
+    float pho_convTrkZ[OBJECTARRAYSIZE]; CALCULATE as in Razor 
+    float pho_convTrkClusZ[OBJECTARRAYSIZE]; CALCULATE as in Razor
+
+    vector<vector<uint>> pho_EcalRechitID;
+    vector<vector<uint>> *pho_EcalRechitIndex;
+    vector<uint>  pho_SeedRechitID;
+    vector<uint>  *pho_SeedRechitIndex;
     */
   }
 };
 
 // ---- NanoAOD column booking ----
-
 inline void addPhoColumns(nanoaod::FlatTable& tab, const PhoVars& v) {
+
   // --- flags / bookkeeping ---
   tab.addColumn<uint8_t>("isStandardPhoton", v.isStandardPhoton, "1 if in-time (standard) photon", -1);
   tab.addColumn<uint8_t>("passEleVeto",      v.passEleVeto,      "1 if passElectronVeto()", -1);
   tab.addColumn<uint8_t>("isConversion",     v.isConversion,     "1 if hasConversionTracks()", -1);
   tab.addColumn<uint8_t>("hasPixelSeed",     v.hasPixelSeed,     "1 if hasPixelSeed()", -1);
+
+  tab.addColumn<uint8_t>("trackMatching", v.trackMatching, "1 there is close track", -1);
 
   // --- kinematics ---
   tab.addColumn<float>("E",   v.E,   "energy()", 10);
@@ -400,3 +407,4 @@ inline void addPhoColumns(nanoaod::FlatTable& tab, const PhoVars& v) {
 }
 
 #endif
+
