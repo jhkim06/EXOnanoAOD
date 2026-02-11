@@ -95,10 +95,7 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 		}
 	}
 
-	void fillPFIsoVar(const pat::Photon& pho,
-		const int photon_index,
-		const pat::PackedCandidateCollection& packedPFCands,
-		const reco::VertexCollection& vertices) {
+	void fillPFIsoVar(const pat::Photon& pho, const int photon_index) {
 		// https://github.com/cms-lpc-llp/DelayedPhotonTuplizer/blob/master/plugins/RazorTuplizer.cc#L2022
 		// Compute PF isolation
 		const float coneSizeDR = 0.3;
@@ -116,7 +113,7 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 			pho.superCluster()->z() - myPV->z()
 			);
 		// Loop over all PF candidates
-		for (const pat::PackedCandidate &candidate : packedPFCands) {
+		for (const pat::PackedCandidate &candidate : *packedPFCands) {
 			// Check if this candidate is within the isolation cone
 			float dR=deltaR(
 				photon_directionWrtVtx.Eta(),photon_directionWrtVtx.Phi(),
@@ -161,9 +158,9 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 
 				//loop over all vertices
 				for(int q = 0; q < nPVAll; q++) {
-					if(!(vertices.at(q).isValid() && !vertices.at(q).isFake())) continue;
-					dz = candidate.pseudoTrack().dz(vertices.at(q).position());
-					dxy =candidate.pseudoTrack().dxy(vertices.at(q).position());
+					if(!(vertices->at(q).isValid() && !vertices->at(q).isFake())) continue;
+					dz = candidate.pseudoTrack().dz(vertices->at(q).position());
+					dxy =candidate.pseudoTrack().dxy(vertices->at(q).position());
 					if (fabs(dz) > dzMax) continue;
 					if(fabs(dxy) > dxyMax) continue;
 					// The candidate is eligible, increment the isolation
@@ -197,17 +194,17 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 
 		float worstIsolation = 999;
 		std::vector<float> allIsolations;
-		for(unsigned int ivtx=0; ivtx<vertices.size(); ++ivtx) {
+		for(unsigned int ivtx=0; ivtx<vertices->size(); ++ivtx) {
 
 			// Shift the photon according to the vertex
-			reco::VertexRef vtx(&vertices, ivtx);
+			reco::VertexRef vtx(vertices, ivtx);
 			math::XYZVector photon_directionWrtVtx(pho.superCluster()->x() - vtx->x(),
 			pho.superCluster()->y() - vtx->y(),
 			pho.superCluster()->z() - vtx->z());
 
 			float sum = 0;
 			// Loop over all PF candidates
-			for (const pat::PackedCandidate &candidate : packedPFCands) {
+			for (const pat::PackedCandidate &candidate : *packedPFCands) {
 				//require that PFCandidate is a charged hadron
                 const int pdgId = candidate.pdgId();
                 if( abs(pdgId) != 211) continue;
@@ -364,6 +361,98 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
         }
 		return true;
 	}
+    void fillPhoCovVar(const pat::Photon& pho, const int photon_index) {
+        //conversion matching for beamspot pointing
+		const reco::Conversion *convmatch = 0;
+		double drmin = std::numeric_limits<double>::max();
+        //double leg conversions
+        for (const reco::Conversion &conv : *conversions) {
+            if (conv.refittedPairMomentum().rho()<10.) continue;
+            if (!conv.conversionVertex().isValid()) continue;
+            if (TMath::Prob(conv.conversionVertex().chi2(),  conv.conversionVertex().ndof())<1e-6) continue;
+            math::XYZVector mom(conv.refittedPairMomentum());
+            math::XYZPoint scpos(pho.superCluster()->position());
+            math::XYZPoint cvtx(conv.conversionVertex().position());
+            math::XYZVector cscvector = scpos - cvtx;
+
+            double dr = reco::deltaR(mom,cscvector);
+
+            if (dr<drmin && dr<0.1) {
+            	drmin = dr;
+            	convmatch = &conv;
+            }
+
+            if (!convmatch) {
+                drmin = std::numeric_limits<double>::max();
+                //single leg conversions
+                for (const reco::Conversion &conv : *singleLegConversions) {
+                    math::XYZVector mom(conv.tracksPin()[0]);
+                    math::XYZPoint scpos(pho.superCluster()->position());
+                    math::XYZPoint cvtx(conv.conversionVertex().position());
+                    math::XYZVector cscvector = scpos - cvtx;
+
+                    double dr = reco::deltaR(mom,cscvector);
+
+                    if (dr<drmin && dr<0.1) {
+                        drmin = dr;
+                        convmatch = &conv;
+                    }
+                }
+            }
+
+            //std::cout << "[DEBUG photon conversion] "
+            //<< "convmatch=" << convmatch
+            //<< " hasConversionTracks=" << pho.hasConversionTracks()
+            //<< " nConversions=" << conversions->size()
+            //<< std::endl;
+
+            //matched conversion, compute conversion type
+            //and extrapolation to beamline
+            //*FIXME* Both of these additional two requirements are inconsistent and make the conversion
+            //selection depend on poorly defined criteria, but we keep them for sync purposes
+            if (convmatch && pho.hasConversionTracks() && conversions->size()>0) {
+                int ntracks = convmatch->nTracks();
+
+                math::XYZVector mom(ntracks==2 ? convmatch->refittedPairMomentum() : convmatch->tracksPin()[0]);
+                math::XYZPoint scpos(pho.superCluster()->position());
+                math::XYZPoint cvtx(convmatch->conversionVertex().position());
+                math::XYZVector cscvector = scpos - cvtx;
+
+                double z = cvtx.z();
+                double rho = cvtx.rho();
+
+                int legtype = ntracks==2 ? 0 : 1;
+                int dettype = pho.isEB() ? 0 : 1;
+                int postype =0;
+
+                if (pho.isEB()) {
+                    if (rho<15.) {
+                        postype = 0;
+                    }
+                    else if (rho>=15. && rho<60.) {
+                        postype = 1;
+                    }
+                    else {
+                        postype = 2;
+                    }
+                }
+                else {
+                    if (std::abs(z) < 50.) {
+                        postype = 0;
+                    }
+                    else if (std::abs(z) >= 50. && std::abs(z) < 100.) {
+                        postype = 1;
+                    }
+                    else {
+                        postype = 2;
+                    } 
+                }
+                vars_.convType[photon_index] = legtype + 2*dettype + 4*postype;
+                vars_.convTrkZ[photon_index] = cvtx.z() - ((cvtx.x()-beamSpot->x0())*mom.x()+(cvtx.y()-beamSpot->y0())*mom.y())/mom.rho() * mom.z()/mom.rho();
+                vars_.convTrkClusZ[photon_index] = cvtx.z() - ((cvtx.x()-beamSpot->x0())*cscvector.x()+(cvtx.y()-beamSpot->y0())*cscvector.y())/cscvector.rho() * cscvector.z()/cscvector.rho();
+            }
+        }
+    }
 
 	void produce(edm::Event& iEvent, edm::EventSetup const& iSetup) override {
 		edm::Handle<edm::View<pat::Photon>> photons;
@@ -393,20 +482,9 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 
         // TODO think if it is better to make a separate methode
         // slimmedPhoton and slimmedOOTPhoton
-        edm::Handle<pat::PhotonCollection> itPhotons;
-        edm::Handle<pat::PhotonCollection> ootPhotons;
-		edm::Handle<pat::JetCollection> jets;
-        edm::Handle<reco::VertexCollection> vertices;
-        edm::Handle<pat::PackedCandidateCollection> packedPFCands;
-        edm::Handle<reco::TrackCollection> tracks;
-        edm::Handle<std::vector<reco::Conversion> > conversions;
-        edm::Handle<std::vector<reco::Conversion>> singleLegConversions;
-        edm::Handle<reco::BeamSpot> beamSpot;
-
         iEvent.getByToken(v_photonsToken_[0], itPhotons);
         iEvent.getByToken(v_photonsToken_[1], ootPhotons);
 		iEvent.getByToken(jetsToken_, jets);
-
         iEvent.getByToken(verticesToken_, vertices);
         iEvent.getByToken(packedPFCandsToken_, packedPFCands);
         iEvent.getByToken(tracksToken_, tracks);
@@ -533,98 +611,8 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 		    }
 		    vars_.trackMatching[i] = closeToTrack;
 
-			//conversion matching for beamspot pointing
-			const reco::Conversion *convmatch = 0;
-			double drmin = std::numeric_limits<double>::max();
-            //double leg conversions
-            for (const reco::Conversion &conv : *conversions) {
-            	if (conv.refittedPairMomentum().rho()<10.) continue;
-            	if (!conv.conversionVertex().isValid()) continue;
-            	if (TMath::Prob(conv.conversionVertex().chi2(),  conv.conversionVertex().ndof())<1e-6) continue;
-            	math::XYZVector mom(conv.refittedPairMomentum());
-            	math::XYZPoint scpos(pho.superCluster()->position());
-            	math::XYZPoint cvtx(conv.conversionVertex().position());
-            	math::XYZVector cscvector = scpos - cvtx;
-
-            	double dr = reco::deltaR(mom,cscvector);
-
-            	if (dr<drmin && dr<0.1) {
-            		drmin = dr;
-            		convmatch = &conv;
-            	}
-            }
-
-			if (!convmatch) {
-				drmin = std::numeric_limits<double>::max();
-            	//single leg conversions
-            	for (const reco::Conversion &conv : *singleLegConversions) {
-            	    math::XYZVector mom(conv.tracksPin()[0]);
-            	    math::XYZPoint scpos(pho.superCluster()->position());
-            	    math::XYZPoint cvtx(conv.conversionVertex().position());
-            	    math::XYZVector cscvector = scpos - cvtx;
-
-            	    double dr = reco::deltaR(mom,cscvector);
-
-            	    if (dr<drmin && dr<0.1) {
-            	        drmin = dr;
-            	        convmatch = &conv;
-            	    }
-            	}
-			}
-            
-            //std::cout << "[DEBUG photon conversion] "
-            //<< "convmatch=" << convmatch
-            //<< " hasConversionTracks=" << pho.hasConversionTracks()
-            //<< " nConversions=" << conversions->size()
-            //<< std::endl;
-
-            //matched conversion, compute conversion type
-            //and extrapolation to beamline
-            //*FIXME* Both of these additional two requirements are inconsistent and make the conversion
-            //selection depend on poorly defined criteria, but we keep them for sync purposes
-            if (convmatch && pho.hasConversionTracks() && conversions->size()>0) {
-            	int ntracks = convmatch->nTracks();
-
-                math::XYZVector mom(ntracks==2 ? convmatch->refittedPairMomentum() : convmatch->tracksPin()[0]);
-                math::XYZPoint scpos(pho.superCluster()->position());
-                math::XYZPoint cvtx(convmatch->conversionVertex().position());
-                math::XYZVector cscvector = scpos - cvtx;
-
-                double z = cvtx.z();
-                double rho = cvtx.rho();
-
-                int legtype = ntracks==2 ? 0 : 1;
-                int dettype = pho.isEB() ? 0 : 1;
-                int postype =0;
-
-                if (pho.isEB()) {
-                    if (rho<15.) {
-                        postype = 0;
-                    }
-                    else if (rho>=15. && rho<60.) {
-                        postype = 1;
-                    }
-                    else {
-                        postype = 2;
-                    }
-                }
-                else {
-                    if (std::abs(z) < 50.) {
-                        postype = 0;
-                    }
-                    else if (std::abs(z) >= 50. && std::abs(z) < 100.) {
-                        postype = 1;
-                    }
-                    else {
-                        postype = 2;
-                    } 
-                }
-                vars_.convType[i] = legtype + 2*dettype + 4*postype;
-                vars_.convTrkZ[i] = cvtx.z() - ((cvtx.x()-beamSpot->x0())*mom.x()+(cvtx.y()-beamSpot->y0())*mom.y())/mom.rho() * mom.z()/mom.rho();
-                vars_.convTrkClusZ[i] = cvtx.z() - ((cvtx.x()-beamSpot->x0())*cscvector.x()+(cvtx.y()-beamSpot->y0())*cscvector.y())/cscvector.rho() * cscvector.z()/cscvector.rho();
-            }
-
-	    	fillPFIsoVar(pho, i, *packedPFCands, *vertices);
+            fillPhoCovVar(pho, i);
+	    	fillPFIsoVar(pho, i);
 	    } // n_final_photons
 
 		EcalRechitIndex.clear();
@@ -657,7 +645,7 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	}
 
     private:
-	edm::InputTag src_;
+    edm::InputTag src_;
 	edm::EDGetTokenT<edm::View<pat::Photon>> token_;
 
 	std::vector<edm::InputTag> v_photonsInputTag_;
@@ -672,10 +660,19 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	edm::EDGetTokenT<reco::BeamSpot> beamSpotToken_;
 	edm::EDGetTokenT<edm::SortedCollection<EcalRecHit,edm::StrictWeakOrdering<EcalRecHit>>> ebRecHitsToken_;
 	edm::EDGetTokenT<edm::SortedCollection<EcalRecHit,edm::StrictWeakOrdering<EcalRecHit>>> eeRecHitsToken_;
-
 	edm::ESGetToken<CaloGeometry, CaloGeometryRecord> caloGeomToken_;
 	edm::ESGetToken<EcalLaserDbService, EcalLaserDbRecord> laserToken_;
 	edm::ESGetToken<EcalPedestals, EcalPedestalsRcd> pedestalToken_;
+
+    edm::Handle<pat::PhotonCollection> itPhotons;
+    edm::Handle<pat::PhotonCollection> ootPhotons;
+	edm::Handle<pat::JetCollection> jets;
+    edm::Handle<reco::VertexCollection> vertices;
+    edm::Handle<pat::PackedCandidateCollection> packedPFCands;
+    edm::Handle<reco::TrackCollection> tracks;
+    edm::Handle<std::vector<reco::Conversion> > conversions;
+    edm::Handle<std::vector<reco::Conversion>> singleLegConversions;
+    edm::Handle<reco::BeamSpot> beamSpot;
 
 	int nPV;
 	int nPVAll;
@@ -688,7 +685,6 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	std::vector<uint> ecalRechitID_ToBeSaved;
 	std::vector<std::pair<double,double>> ecalRechitEtaPhi_ToBeSaved;
 	std::vector<std::pair<double,double>> ecalRechitJetEtaPhi_ToBeSaved;
-	//EcalRechitIndex
 	PhoVars vars_;
 };
 
