@@ -79,7 +79,6 @@ struct PhoVars {
   std::vector<int32_t> convType;                  // 
   std::vector<float> convTrkZ;
   std::vector<float> convTrkClusZ;
-    
 
   PhoVars() = default;
 
@@ -88,7 +87,6 @@ struct PhoVars {
   }
 
   void resize(size_t n) {
-
     // bool / uint8-like flags
     isStandardPhoton.assign(n, 1);
     passEleVeto.assign(n, 0);
@@ -162,7 +160,6 @@ struct PhoVars {
     convTrkZ.assign(n, -99.f);
     convTrkClusZ.assign(n, -99.f);
   }
-
 
   void clear() {
 
@@ -278,34 +275,25 @@ struct PhoVars {
     //for (auto const& n : pho.userFloatNames()) edm::LogPrint("KNULLP") << "  " << n;
     //for (auto const& n : pho.userIntNames()) edm::LogPrint("KNULLP") << "  " << n;
 
-    try
-    {
-      // as saved in slimmedPhoton
+    try {// as saved in slimmedPhoton
       cutBasedID_loose[i] = pho.photonID("cutBasedPhotonID-RunIIIWinter22-122X-V1-loose");  //
       cutBasedID_medium[i] = pho.photonID("cutBasedPhotonID-RunIIIWinter22-122X-V1-medium");
       cutBasedID_tight[i] = pho.photonID("cutBasedPhotonID-RunIIIWinter22-122X-V1-tight");
 
       mvaValue[i] = pho.userFloat("PhotonMVAEstimatorRunIIIWinter22v1Values");
       mvaCategory[i] = pho.userInt("PhotonMVAEstimatorRunIIIWinter22v1Categories");
-    }
-    catch (...)
-    {
+    } catch (...) {
       std::cout << "No Photon ID / MVA found." << std::endl;
     }
 
-    try
-    {
-
+    try {
       // FIXME https://egammapog.docs.cern.ch/Run3/SaS/
       // or Photon_energyErr?
       energy_scale[i] = pho.userFloat("energyScaleValue");
       energy_scale_up[i] = pho.userFloat("energyScaleUp");
       energy_scale_down[i] = pho.userFloat("energyScaleDown");
       energy_smear[i] = pho.userFloat("energySigmaValue");
-    }
-    catch (...)
-    {
-
+    } catch (...) {
       std::cout << "No Photon scale found. Set it to 1." << std::endl;
       energy_scale[i] = 1.0;
       energy_scale_up[i] = 1.0;
@@ -323,9 +311,7 @@ struct PhoVars {
       scX[i]         = sc.x();
       scY[i]         = sc.y();
       scZ[i]         = sc.z();
-
     }
-
     /*
     TODO
     float pho_vtxSumPx[OBJECTARRAYSIZE][MAX_NPV]; CALCULATE as in Razor, Note 2D vector not supported in FlatTable
@@ -333,7 +319,6 @@ struct PhoVars {
 
     bool pho_passHLTFilter[OBJECTARRAYSIZE][MAX_PhotonHLTFilters];  Note 2D vector not supported in FlatTable
     */
-
   }
 };
 
@@ -405,10 +390,9 @@ inline void addPhoColumns(nanoaod::FlatTable& tab, const PhoVars& v) {
   tab.addColumn<float>("energy_scale_down",       v.energy_scale_down,       "userFloat energy_scale_down... (if present)", 10);
   tab.addColumn<float>("energy_smear",       v.energy_smear,       "userFloat energy_smear... (if present)", 10);
 
-  tab.addColumn<int32_t>("convType",       v.convType,       "", -1);
+  tab.addColumn<int32_t>("convType",  v.convType,       "", -1);
   tab.addColumn<float>("convTrkZ",    v.convTrkZ,    "", 10);
-  tab.addColumn<float>("convTrkClusZ",    v.convTrkClusZ,    "", 10);
+  tab.addColumn<float>("convTrkClusZ", v.convTrkClusZ,    "", 10);
 }
 
 #endif
-
