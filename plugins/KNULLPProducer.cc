@@ -621,6 +621,7 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 
 	    addPhoColumns(*final_photons_tab, vars_);
 
+        // TODO flattened variables needs reference index
 	    auto final_photons_sumChargedHadronPtAllVertices_tab = std::make_unique<nanoaod::FlatTable>(sumChargedHadronPtAllVertices.size(), "phoVtx", false, false);
 		final_photons_sumChargedHadronPtAllVertices_tab->addColumn<float>("sumChargedHadronPtAllVertices", sumChargedHadronPtAllVertices, "flattend sumChargedHadronPtAllVertices", 10);
 
@@ -683,7 +684,7 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	std::vector<uint> EcalRechitIndex;  // flatten
 	std::vector<uint> SeedRechitIndex;
 	std::vector<uint> ecalRechitID_ToBeSaved;
-	std::vector<std::pair<double,double>> ecalRechitEtaPhi_ToBeSaved;
+	std::vector<std::pair<double,double>> ecalRechitEtaPhi_ToBeSaved;  // FIXME https://github.com/cms-lpc-llp/DelayedPhotonTuplizer/blob/master/plugins/RazorTuplizer.cc#L1687
 	std::vector<std::pair<double,double>> ecalRechitJetEtaPhi_ToBeSaved;
 	PhoVars vars_;
 };
