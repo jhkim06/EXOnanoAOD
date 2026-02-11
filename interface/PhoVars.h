@@ -63,7 +63,6 @@ struct PhoVars {
   std::vector<float> scX;
   std::vector<float> scY;
   std::vector<float> scZ;
-  std::vector<uint32_t> scSeedRawId;                 // pho.superCluster()->seed()->seed().rawId()
 
   // --- optional: cutbased ID + MVA (stored on pat::Photon as IDs/user data) ---
   std::vector<uint8_t> cutBasedID_loose;
@@ -145,7 +144,6 @@ struct PhoVars {
     scX.assign(n, -999.f);
     scY.assign(n, -999.f);
     scZ.assign(n, -999.f);
-    scSeedRawId.assign(n, 0u);
 
     // VID / MVA
     cutBasedID_loose.assign(n, 0);
@@ -223,7 +221,6 @@ struct PhoVars {
     scX.clear();
     scY.clear();
     scZ.clear();
-    scSeedRawId.clear();
 
     // VID / MVA
     cutBasedID_loose.clear();
@@ -327,23 +324,16 @@ struct PhoVars {
       scY[i]         = sc.y();
       scZ[i]         = sc.z();
 
-      // seed rawId (guard all pointers)
-      if (sc.seed().isNonnull()) {
-        scSeedRawId[i] = sc.seed()->seed().rawId();
-      }
     }
+
     /*
     TODO
-    float pho_sumChargedHadronPtAllVertices[OBJECTARRAYSIZE][MAX_NPV]; CALCULATE as in Razor, Note 2D vector not supported in FlatTable
-    bool pho_passHLTFilter[OBJECTARRAYSIZE][MAX_PhotonHLTFilters];  Note 2D vector not supported in FlatTable
     float pho_vtxSumPx[OBJECTARRAYSIZE][MAX_NPV]; CALCULATE as in Razor, Note 2D vector not supported in FlatTable
     float pho_vtxSumPy[OBJECTARRAYSIZE][MAX_NPV]; CALCULATE as in Razor, Note 2D vector not supported in FlatTable
 
-    vector<vector<uint>> pho_EcalRechitID;
-    vector<vector<uint>> *pho_EcalRechitIndex;
-    vector<uint>  pho_SeedRechitID;
-    vector<uint>  *pho_SeedRechitIndex;
+    bool pho_passHLTFilter[OBJECTARRAYSIZE][MAX_PhotonHLTFilters];  Note 2D vector not supported in FlatTable
     */
+
   }
 };
 
@@ -402,7 +392,6 @@ inline void addPhoColumns(nanoaod::FlatTable& tab, const PhoVars& v) {
   tab.addColumn<float>("superClusterX",         v.scX,         "superCluster()->x()", 10);
   tab.addColumn<float>("superClusterY",         v.scY,         "superCluster()->y()", 10);
   tab.addColumn<float>("superClusterZ",         v.scZ,         "superCluster()->z()", 10);
-  tab.addColumn<uint32_t>("superClusterSeedRawId", v.scSeedRawId, "superCluster()->seed()->seed().rawId()", -1);
 
   // --- optional IDs / MVA (kept even if defaults when missing) ---
   tab.addColumn<uint8_t>("cutBasedID_loose",  v.cutBasedID_loose,  "cutBased loose ID (if present)", -1);
