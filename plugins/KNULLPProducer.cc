@@ -71,6 +71,8 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	token_(consumes<edm::View<pat::Photon>>(src_)),
 
 	v_photonsInputTag_(cfg.getParameter<std::vector<edm::InputTag>>("photons")),
+	metToken_(consumes<pat::METCollection>(cfg.getParameter<edm::InputTag>("mets"))),
+    electronsToken_(consumes<edm::View<reco::GsfElectron> >(cfg.getParameter<edm::InputTag>("electrons"))),
 	jetsToken_(consumes<pat::JetCollection>(cfg.getParameter<edm::InputTag>("jets"))),
 	verticesToken_(consumes<reco::VertexCollection>(cfg.getParameter<edm::InputTag>("vertices"))),
 	packedPFCandsToken_(consumes<pat::PackedCandidateCollection>(cfg.getParameter<edm::InputTag>("packedPfCands"))),
@@ -94,6 +96,27 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 			v_photonsToken_.push_back(consumes<pat::PhotonCollection>(tag));
 		}
 	}
+
+    void fillElctrons(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
+        for (size_t i = 0; i < electrons->size(); ++i){
+			const auto ele = electrons->ptrAt(i);
+
+			ele_SeedRechitID.push_back(ele->superCluster()->seed()->seed().rawId());
+
+			//*************************************************
+			//Find relevant rechits
+			//*************************************************
+			std::vector<uint> rechits; rechits.clear();
+			const std::vector< std::pair<DetId, float>>& v_id =ele->superCluster()->seed()->hitsAndFractions();
+			for ( size_t i = 0; i < v_id.size(); ++i ) {
+				ecalRechitID_ToBeSaved.push_back(v_id[i].first);
+				rechits.push_back(v_id[i].first.rawId());
+			}
+			ecalRechitEtaPhi_ToBeSaved.push_back( std::pair<double,double>( ele->superCluster()->eta(), ele->superCluster()->phi() ));
+			ele_EcalRechitID.push_back(rechits);
+
+        }
+    }
 
 	void fillPFIsoVar(const pat::Photon& pho, const int photon_index) {
 		// https://github.com/cms-lpc-llp/DelayedPhotonTuplizer/blob/master/plugins/RazorTuplizer.cc#L2022
@@ -351,6 +374,16 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
             rechitIndex++;
 		}
 
+		// TODO save to table 
+        for (uint k=0; k<ele_EcalRechitID.size(); k++) {
+        	//std::vector<uint> tmpVector;
+        	for (uint l=0; l<ele_EcalRechitID[k].size(); l++) {
+        		//tmpVector.push_back(mapRecHitIdToIndex[EcalRechitID[k][l]]);
+        		ele_EcalRechitIndex.push_back(mapRecHitIdToIndex[ele_EcalRechitID[k][l]]); // flatten
+        	}
+        	ele_SeedRechitIndex.push_back(mapRecHitIdToIndex[ele_SeedRechitID[k]]);
+        }
+
         for (uint k=0; k<EcalRechitID.size(); k++) {
         	//std::vector<uint> tmpVector;
         	for (uint l=0; l<EcalRechitID[k].size(); l++) {
@@ -482,6 +515,8 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 
         // TODO think if it is better to make a separate methode
         // slimmedPhoton and slimmedOOTPhoton
+		iEvent.getByToken(metToken_, mets);
+        iEvent.getByToken(electronsToken_, electrons);
         iEvent.getByToken(v_photonsToken_[0], itPhotons);
         iEvent.getByToken(v_photonsToken_[1], ootPhotons);
 		iEvent.getByToken(jetsToken_, jets);
@@ -491,6 +526,19 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
         iEvent.getByToken(conversionsToken_,conversions);
         iEvent.getByToken(singleLegConversionsToken_,singleLegConversions);
         iEvent.getByToken(beamSpotToken_,beamSpot);
+
+        sumChargedHadronPtAllVertices.clear();
+        ele_SeedRechitID.clear();
+        SeedRechitID.clear();
+		ele_EcalRechitID.clear();
+	    EcalRechitID.clear();
+	    ecalRechitID_ToBeSaved.clear();
+	    ecalRechitEtaPhi_ToBeSaved.clear();;
+
+		const pat::MET &Met = mets->front();
+
+        // loop over electrons for 
+        fillElctrons(iEvent, iSetup);
 
         //select the primary vertex, if any
         nPV = 0;
@@ -513,6 +561,11 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 			ecalRechitJetEtaPhi_ToBeSaved.push_back( std::pair<double,double>( j.eta(), j.phi() ));
 		}
 
+		float metType1Px = Met.px();
+		float metType1Py = Met.py();
+		float metType1Pt = Met.pt();
+		float metType1Phi = Met.phi(); 
+		
         std::vector<char> keepIT(itPhotons->size(), 1);
         std::vector<char> keepOOT(ootPhotons->size(), 1);
 		for (size_t i = 0; i < itPhotons->size(); ++i) {
@@ -526,12 +579,22 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 
 				if (it.pt() < oot.pt()) {
 					keepIT[i] = 0;
-					// TODO correct MET
+					// correct MET
+					metType1Px = metType1Px + it.px();
+					metType1Py = metType1Py + it.py();
+					TVector3 vec_met_temp(metType1Px, metType1Py, 0);			
+					metType1Pt = sqrt(metType1Px*metType1Px+metType1Py*metType1Py);
+					metType1Phi = vec_met_temp.Phi();
 					break;              // IT removed, stop checking this IT photon
 				}
 				else {
 					keepOOT[j] = 0;     // OOT removed, continue checking IT vs others
-					// TODO correct MET
+					// correct MET
+					metType1Px = metType1Px - it.px();
+					metType1Py = metType1Py - it.py();
+					TVector3 vec_met_temp(metType1Px, metType1Py, 0);
+					metType1Pt = sqrt(metType1Px*metType1Px+metType1Py*metType1Py);
+					metType1Phi = vec_met_temp.Phi();
 				}
 			}
 		}
@@ -556,12 +619,6 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
         const size_t n_final_photons = final_photons.size();
         auto final_photons_tab = std::make_unique<nanoaod::FlatTable>(n_final_photons, "pho", false, false);
         vars_.resize(n_final_photons);
-
-        sumChargedHadronPtAllVertices.clear();
-        SeedRechitID.clear();
-	    EcalRechitID.clear();
-	    ecalRechitID_ToBeSaved.clear();
-	    ecalRechitEtaPhi_ToBeSaved.clear();;
 
 	    for (size_t i = 0; i < n_final_photons; ++i) {
 	    	const auto& pho = *final_photons[i];
@@ -615,7 +672,9 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	    	fillPFIsoVar(pho, i);
 	    } // n_final_photons
 
+		ele_EcalRechitIndex.clear();
 		EcalRechitIndex.clear();
+	    ele_SeedRechitIndex.clear(); 
 	    SeedRechitIndex.clear(); 
 	    fillEcalRechits(iEvent, iSetup);
 
@@ -631,11 +690,16 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	    auto final_photons_SeedRechitIndex_tab = std::make_unique<nanoaod::FlatTable>(SeedRechitIndex.size(), "phoSeedIdx", false, false);
 		final_photons_SeedRechitIndex_tab->addColumn<uint8_t>("SeedRechitIndex", SeedRechitIndex, "flattend SeedRechitIndex", -1);
 
-	    // test
+	    // Lets use this table for corrected MET
 	    auto razor_event = std::make_unique<nanoaod::FlatTable>(1, "Razor", /*singleton=*/true, /*extension=*/false);
 	    razor_event->addColumnValue<float>("pv_x", myPV->x(), "pv_x", 10);
 	    razor_event->addColumnValue<float>("pv_y", myPV->y(), "pv_y", 10);
 	    razor_event->addColumnValue<float>("pv_z", myPV->z(), "pv_z", 10);
+
+	    razor_event->addColumnValue<float>("metType1Px", metType1Px, "metType1Px", 10);
+	    razor_event->addColumnValue<float>("metType1Py", metType1Py, "metType1Py", 10);
+	    razor_event->addColumnValue<float>("metType1Pt", metType1Pt, "metType1Pt", 10);
+	    razor_event->addColumnValue<float>("metType1Phi", metType1Phi, "metType1Phi", 10);
 
 	    iEvent.put(std::move(tab), "Photon");  // this is just to check
 	    iEvent.put(std::move(final_photons_tab), "pho");
@@ -652,6 +716,8 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	std::vector<edm::InputTag> v_photonsInputTag_;
 	std::vector<edm::EDGetTokenT<pat::PhotonCollection>> v_photonsToken_;
 
+	edm::EDGetTokenT<pat::METCollection> metToken_;
+    edm::EDGetTokenT<edm::View<reco::GsfElectron> > electronsToken_;
 	edm::EDGetTokenT<pat::JetCollection> jetsToken_;
 	edm::EDGetTokenT<reco::VertexCollection> verticesToken_;
 	edm::EDGetTokenT<pat::PackedCandidateCollection> packedPFCandsToken_;
@@ -665,8 +731,10 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	edm::ESGetToken<EcalLaserDbService, EcalLaserDbRecord> laserToken_;
 	edm::ESGetToken<EcalPedestals, EcalPedestalsRcd> pedestalToken_;
 
+	edm::Handle<pat::METCollection> mets;
     edm::Handle<pat::PhotonCollection> itPhotons;
     edm::Handle<pat::PhotonCollection> ootPhotons;
+    edm::Handle<edm::View<reco::GsfElectron> > electrons;
 	edm::Handle<pat::JetCollection> jets;
     edm::Handle<reco::VertexCollection> vertices;
     edm::Handle<pat::PackedCandidateCollection> packedPFCands;
@@ -679,9 +747,13 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	int nPVAll;
 	const reco::Vertex *myPV;
 	std::vector<float> sumChargedHadronPtAllVertices;
+	std::vector<std::vector<uint>> ele_EcalRechitID;
 	std::vector<std::vector<uint>> EcalRechitID;
+	std::vector<uint> ele_SeedRechitID;
 	std::vector<uint> SeedRechitID;
+	std::vector<uint> ele_EcalRechitIndex;  // flatten
 	std::vector<uint> EcalRechitIndex;  // flatten
+	std::vector<uint> ele_SeedRechitIndex;
 	std::vector<uint> SeedRechitIndex;
 	std::vector<uint> ecalRechitID_ToBeSaved;
 	std::vector<std::pair<double,double>> ecalRechitEtaPhi_ToBeSaved;  // FIXME https://github.com/cms-lpc-llp/DelayedPhotonTuplizer/blob/master/plugins/RazorTuplizer.cc#L1687

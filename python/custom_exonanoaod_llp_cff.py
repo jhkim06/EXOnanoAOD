@@ -7,6 +7,8 @@ myPhotonTable = cms.EDProducer(
     "KNULLPProducer",
     src = cms.InputTag("linkedObjects", "photons"),
 
+    mets = cms.InputTag("slimmedMETs"),
+    electrons = cms.InputTag("slimmedElectrons"),
     photons = cms.VInputTag(
         cms.InputTag("slimmedPhotons"),
         cms.InputTag("slimmedOOTPhotons"),

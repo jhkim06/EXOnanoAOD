@@ -24,13 +24,14 @@ process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(100),
+    input = cms.untracked.int32(-1),
     output = cms.optional.untracked.allowed(cms.int32,cms.PSet)
 )
 
 # Input source
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('/store/mc/Run3Summer23DRPremix/TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8/AODSIM/130X_mcRun3_2023_realistic_v14-v2/70000/0073f4e8-97f3-4564-8fc3-e33bbb8842ee.root'),
+    fileNames = cms.untracked.vstring('file:/afs/cern.ch/work/j/jhkim/CMSSW/RUN3/reproduce_jy/work/SMS-N1N1_mN-200_el9_amd64_gcc11_CMSSW_13_2_9_14210539_RECO.root'),
+    #fileNames = cms.untracked.vstring('/store/mc/Run3Summer23DRPremix/TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8/AODSIM/130X_mcRun3_2023_realistic_v14-v2/70000/0073f4e8-97f3-4564-8fc3-e33bbb8842ee.root'),
     #fileNames = cms.untracked.vstring('/store/mc/Run3Summer23DRPremix/ggH_Hto2Sto4D_MH-125-MS-1-ctauS-10000_TuneCP5_13p6TeV_powheg-pythia8/AODSIM/130X_mcRun3_2023_realistic_v14-v2/2550000/21ec258f-6395-47e3-a461-c7abfe07a04a.root'),
     secondaryFileNames = cms.untracked.vstring()
 )
