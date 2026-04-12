@@ -22,11 +22,8 @@
 <use name="DataFormats/PatCandidates"/>
 <use name="PhysicsTools/NanoAOD"/>
 <use name="FWCore/Utilities"/>
-<use   name="FWCore/Framework"/>
 <use   name="FWCore/ServiceRegistry"/>
-<use   name="FWCore/Utilities"/>
 <use   name="FWCore/MessageLogger"/>
-<use   name="FWCore/ParameterSet"/>
 <use   name="Geometry/CaloTopology"/>
 <use   name="CondCore/DBOutputService"/>
 <use   name="CondFormats/EgammaObjects"/>
@@ -36,10 +33,8 @@
 <use   name="DataFormats/Candidate"/>
 <use   name="DataFormats/Common"/>
 <use   name="DataFormats/EgammaCandidates"/>
-<use   name="DataFormats/PatCandidates"/>
 <use   name="DataFormats/EgammaReco"/>
 <use   name="DataFormats/TrackReco"/>
-<use   name="TrackingTools/IPTools"/>
 <use   name="PhysicsTools/UtilAlgos"/>
 <use   name="PhysicsTools/SelectorUtils"/>
 <flags EDM_PLUGIN="1"/>
