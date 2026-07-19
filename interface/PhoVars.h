@@ -18,6 +18,14 @@ struct PhoVars {
   std::vector<uint8_t> hasPixelSeed;
 
   std::vector<uint8_t> trackMatching;
+  std::vector<uint8_t> passHLTEG20HEUnseeded;
+  std::vector<uint8_t> passHLTEG30HEUnseeded;
+  std::vector<uint8_t> passHLTEG20EtUnseeded;
+  std::vector<uint8_t> passHLTEG30EtUnseeded;
+  std::vector<float> drHLTEG20HEUnseeded;
+  std::vector<float> drHLTEG30HEUnseeded;
+  std::vector<float> drHLTEG20EtUnseeded;
+  std::vector<float> drHLTEG30EtUnseeded;
 
   // --- kinematics ---
   std::vector<float> E;
@@ -64,6 +72,22 @@ struct PhoVars {
   std::vector<float> scY;
   std::vector<float> scZ;
 
+  // --- ECAL rechit links / seed timing ---
+  std::vector<int32_t> ecalRechitIdxStart;
+  std::vector<int32_t> nEcalRechits;
+  std::vector<int32_t> seedRechitIdx;
+  std::vector<int32_t> seedRechitID;
+  std::vector<float> seedRechitEnergy;
+  std::vector<float> seedRechitTime;
+  std::vector<float> seedRechitEta;
+  std::vector<float> seedRechitPhi;
+  std::vector<float> seedRechitX;
+  std::vector<float> seedRechitY;
+  std::vector<float> seedRechitZ;
+  std::vector<uint8_t> seedRechitFlagOOT;
+  std::vector<uint8_t> seedRechitGainSwitch1;
+  std::vector<uint8_t> seedRechitGainSwitch6;
+
   // --- optional: cutbased ID + MVA (stored on pat::Photon as IDs/user data) ---
   std::vector<uint8_t> cutBasedID_loose;
   std::vector<uint8_t> cutBasedID_medium;
@@ -94,6 +118,14 @@ struct PhoVars {
     hasPixelSeed.assign(n, 0);
 
     trackMatching.assign(n, 0);
+    passHLTEG20HEUnseeded.assign(n, 0);
+    passHLTEG30HEUnseeded.assign(n, 0);
+    passHLTEG20EtUnseeded.assign(n, 0);
+    passHLTEG30EtUnseeded.assign(n, 0);
+    drHLTEG20HEUnseeded.assign(n, 999.f);
+    drHLTEG30HEUnseeded.assign(n, 999.f);
+    drHLTEG20EtUnseeded.assign(n, 999.f);
+    drHLTEG30EtUnseeded.assign(n, 999.f);
 
     // kinematics
     E.assign(n, -999.f);
@@ -143,6 +175,22 @@ struct PhoVars {
     scY.assign(n, -999.f);
     scZ.assign(n, -999.f);
 
+    // ECAL rechit links / seed timing
+    ecalRechitIdxStart.assign(n, -1);
+    nEcalRechits.assign(n, 0);
+    seedRechitIdx.assign(n, -1);
+    seedRechitID.assign(n, 0);
+    seedRechitEnergy.assign(n, -999.f);
+    seedRechitTime.assign(n, -999.f);
+    seedRechitEta.assign(n, -999.f);
+    seedRechitPhi.assign(n, -999.f);
+    seedRechitX.assign(n, -999.f);
+    seedRechitY.assign(n, -999.f);
+    seedRechitZ.assign(n, -999.f);
+    seedRechitFlagOOT.assign(n, 0);
+    seedRechitGainSwitch1.assign(n, 0);
+    seedRechitGainSwitch6.assign(n, 0);
+
     // VID / MVA
     cutBasedID_loose.assign(n, 0);
     cutBasedID_medium.assign(n, 0);
@@ -170,6 +218,14 @@ struct PhoVars {
     hasPixelSeed.clear();
 
     trackMatching.clear();
+    passHLTEG20HEUnseeded.clear();
+    passHLTEG30HEUnseeded.clear();
+    passHLTEG20EtUnseeded.clear();
+    passHLTEG30EtUnseeded.clear();
+    drHLTEG20HEUnseeded.clear();
+    drHLTEG30HEUnseeded.clear();
+    drHLTEG20EtUnseeded.clear();
+    drHLTEG30EtUnseeded.clear();
 
     // kinematics
     E.clear();
@@ -218,6 +274,22 @@ struct PhoVars {
     scX.clear();
     scY.clear();
     scZ.clear();
+
+    // ECAL rechit links / seed timing
+    ecalRechitIdxStart.clear();
+    nEcalRechits.clear();
+    seedRechitIdx.clear();
+    seedRechitID.clear();
+    seedRechitEnergy.clear();
+    seedRechitTime.clear();
+    seedRechitEta.clear();
+    seedRechitPhi.clear();
+    seedRechitX.clear();
+    seedRechitY.clear();
+    seedRechitZ.clear();
+    seedRechitFlagOOT.clear();
+    seedRechitGainSwitch1.clear();
+    seedRechitGainSwitch6.clear();
 
     // VID / MVA
     cutBasedID_loose.clear();
@@ -317,7 +389,6 @@ struct PhoVars {
     float pho_vtxSumPx[OBJECTARRAYSIZE][MAX_NPV]; CALCULATE as in Razor, Note 2D vector not supported in FlatTable
     float pho_vtxSumPy[OBJECTARRAYSIZE][MAX_NPV]; CALCULATE as in Razor, Note 2D vector not supported in FlatTable
 
-    bool pho_passHLTFilter[OBJECTARRAYSIZE][MAX_PhotonHLTFilters];  Note 2D vector not supported in FlatTable
     */
   }
 };
@@ -332,6 +403,14 @@ inline void addPhoColumns(nanoaod::FlatTable& tab, const PhoVars& v) {
   tab.addColumn<uint8_t>("hasPixelSeed",     v.hasPixelSeed,     "1 if hasPixelSeed()", -1);
 
   tab.addColumn<uint8_t>("trackMatching", v.trackMatching, "1 there is close track", -1);
+  tab.addColumn<uint8_t>("passHLTEG20HEUnseeded", v.passHLTEG20HEUnseeded, "1 if photon matches hltEG20HEFilterUnseeded trigger object", -1);
+  tab.addColumn<uint8_t>("passHLTEG30HEUnseeded", v.passHLTEG30HEUnseeded, "1 if photon matches hltEG30HEFilterUnseeded trigger object", -1);
+  tab.addColumn<uint8_t>("passHLTEG20EtUnseeded", v.passHLTEG20EtUnseeded, "1 if photon matches hltEG20EtFilterUnseeded trigger object", -1);
+  tab.addColumn<uint8_t>("passHLTEG30EtUnseeded", v.passHLTEG30EtUnseeded, "1 if photon matches hltEG30EtFilterUnseeded trigger object", -1);
+  tab.addColumn<float>("drHLTEG20HEUnseeded", v.drHLTEG20HEUnseeded, "minimum deltaR to hltEG20HEFilterUnseeded trigger object", 10);
+  tab.addColumn<float>("drHLTEG30HEUnseeded", v.drHLTEG30HEUnseeded, "minimum deltaR to hltEG30HEFilterUnseeded trigger object", 10);
+  tab.addColumn<float>("drHLTEG20EtUnseeded", v.drHLTEG20EtUnseeded, "minimum deltaR to hltEG20EtFilterUnseeded trigger object", 10);
+  tab.addColumn<float>("drHLTEG30EtUnseeded", v.drHLTEG30EtUnseeded, "minimum deltaR to hltEG30EtFilterUnseeded trigger object", 10);
 
   // --- kinematics ---
   tab.addColumn<float>("E",   v.E,   "energy()", 10);
@@ -377,6 +456,22 @@ inline void addPhoColumns(nanoaod::FlatTable& tab, const PhoVars& v) {
   tab.addColumn<float>("superClusterX",         v.scX,         "superCluster()->x()", 10);
   tab.addColumn<float>("superClusterY",         v.scY,         "superCluster()->y()", 10);
   tab.addColumn<float>("superClusterZ",         v.scZ,         "superCluster()->z()", 10);
+
+  // --- ECAL rechit links / seed timing ---
+  tab.addColumn<int32_t>("ecalRechitIdxStart", v.ecalRechitIdxStart, "first row in phoECALIdx for this photon", -1);
+  tab.addColumn<int32_t>("nEcalRechits",       v.nEcalRechits,       "number of associated ECAL rechit indices", -1);
+  tab.addColumn<int32_t>("seedRechitIdx",      v.seedRechitIdx,      "row index in ecalRechit table for photon seed rechit", -1);
+  tab.addColumn<int32_t>("seedRechitID",       v.seedRechitID,       "raw DetId of photon seed rechit", -1);
+  tab.addColumn<float>("seedRechitEnergy",     v.seedRechitEnergy,   "seed rechit energy", 10);
+  tab.addColumn<float>("seedRechitTime",       v.seedRechitTime,     "seed rechit time", 10);
+  tab.addColumn<float>("seedRechitEta",        v.seedRechitEta,      "seed rechit eta", 10);
+  tab.addColumn<float>("seedRechitPhi",        v.seedRechitPhi,      "seed rechit phi", 10);
+  tab.addColumn<float>("seedRechitX",          v.seedRechitX,        "seed rechit x position", 10);
+  tab.addColumn<float>("seedRechitY",          v.seedRechitY,        "seed rechit y position", 10);
+  tab.addColumn<float>("seedRechitZ",          v.seedRechitZ,        "seed rechit z position", 10);
+  tab.addColumn<uint8_t>("seedRechitFlagOOT",     v.seedRechitFlagOOT,     "seed rechit kOutOfTime flag", -1);
+  tab.addColumn<uint8_t>("seedRechitGainSwitch1", v.seedRechitGainSwitch1, "seed rechit kHasSwitchToGain1 flag", -1);
+  tab.addColumn<uint8_t>("seedRechitGainSwitch6", v.seedRechitGainSwitch6, "seed rechit kHasSwitchToGain6 flag", -1);
 
   // --- optional IDs / MVA (kept even if defaults when missing) ---
   tab.addColumn<uint8_t>("cutBasedID_loose",  v.cutBasedID_loose,  "cutBased loose ID (if present)", -1);

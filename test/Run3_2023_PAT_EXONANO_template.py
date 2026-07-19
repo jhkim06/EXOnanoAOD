@@ -30,7 +30,7 @@ process.maxEvents = cms.untracked.PSet(
 
 # Input source
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('file:/afs/cern.ch/work/j/jhkim/CMSSW/RUN3/reproduce_jy/work/SMS-N1N1_mN-200_el9_amd64_gcc11_CMSSW_13_2_9_14210539_RECO.root'),
+    fileNames = cms.untracked.vstring('file:/u/user/jhkim/SE_UserHome/AODSIM/Run3/L500TeV_Ctau1000cm/Run3_L_500TeV_ctau_1000cm_GENSIM/Summer24_L_500TeV_ctau_1000cm_AODSIM_step2/260716_031512/0000/EXO-RunIII2024Summer24DRPremix-00049_15.root'),
     #fileNames = cms.untracked.vstring('/store/mc/Run3Summer23DRPremix/TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8/AODSIM/130X_mcRun3_2023_realistic_v14-v2/70000/0073f4e8-97f3-4564-8fc3-e33bbb8842ee.root'),
     #fileNames = cms.untracked.vstring('/store/mc/Run3Summer23DRPremix/ggH_Hto2Sto4D_MH-125-MS-1-ctauS-10000_TuneCP5_13p6TeV_powheg-pythia8/AODSIM/130X_mcRun3_2023_realistic_v14-v2/2550000/21ec258f-6395-47e3-a461-c7abfe07a04a.root'),
     secondaryFileNames = cms.untracked.vstring()

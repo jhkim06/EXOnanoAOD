@@ -20,6 +20,7 @@ myPhotonTable = cms.EDProducer(
     conversions = cms.InputTag("reducedEgamma", "reducedConversions"),  # "PAT" used in Razor
     singleLegConversions = cms.InputTag("reducedEgamma", "reducedSingleLegConversions"),  # "PAT" used in Razor
     beamSpot = cms.InputTag("offlineBeamSpot"),
+    triggerObjects = cms.InputTag("unpackedPatTrigger"),
 
     ebRecHits = cms.InputTag("reducedEgamma", "reducedEBRecHits"),  # "PAT" used in Razor
     eeRecHits = cms.InputTag("reducedEgamma", "reducedEERecHits"),

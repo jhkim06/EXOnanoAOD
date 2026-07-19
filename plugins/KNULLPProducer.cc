@@ -15,7 +15,13 @@ Example included for BeamSpot object.
 //
 
 // system include files
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <limits>
+#include <map>
 #include <memory>
+#include <vector>
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -46,6 +52,7 @@ Example included for BeamSpot object.
 #include "DataFormats/PatCandidates/interface/MET.h"
 #include "DataFormats/PatCandidates/interface/PackedCandidate.h"
 #include "DataFormats/PatCandidates/interface/PackedGenParticle.h"
+#include "DataFormats/PatCandidates/interface/TriggerObjectStandAlone.h"
 #include "DataFormats/Candidate/interface/Candidate.h"
 
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
@@ -80,6 +87,7 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	conversionsToken_(consumes<std::vector<reco::Conversion>>(cfg.getParameter<edm::InputTag>("conversions"))),
 	singleLegConversionsToken_(consumes<std::vector<reco::Conversion> >(cfg.getParameter<edm::InputTag>("singleLegConversions"))),
 	beamSpotToken_(consumes<reco::BeamSpot>(cfg.getParameter<edm::InputTag>("beamSpot"))),
+	triggerObjectsToken_(consumes<pat::TriggerObjectStandAloneCollection>(cfg.getParameter<edm::InputTag>("triggerObjects"))),
 	ebRecHitsToken_(consumes<edm::SortedCollection<EcalRecHit,edm::StrictWeakOrdering<EcalRecHit>>>(cfg.getParameter<edm::InputTag>("ebRecHits"))),
 	eeRecHitsToken_(consumes<edm::SortedCollection<EcalRecHit,edm::StrictWeakOrdering<EcalRecHit>>>(cfg.getParameter<edm::InputTag>("eeRecHits"))),
 	caloGeomToken_(esConsumes<CaloGeometry, CaloGeometryRecord>()),
@@ -91,6 +99,7 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 		produces<nanoaod::FlatTable>("phoVtx");
 		produces<nanoaod::FlatTable>("phoECALIdx"); 
 		produces<nanoaod::FlatTable>("phoSeedIdx"); 
+		produces<nanoaod::FlatTable>("ecalRechit");
 		produces<nanoaod::FlatTable>("Razor");
 		for (auto const& tag : v_photonsInputTag_) {
 			v_photonsToken_.push_back(consumes<pat::PhotonCollection>(tag));
@@ -109,7 +118,7 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 			std::vector<uint> rechits; rechits.clear();
 			const std::vector< std::pair<DetId, float>>& v_id =ele->superCluster()->seed()->hitsAndFractions();
 			for ( size_t i = 0; i < v_id.size(); ++i ) {
-				ecalRechitID_ToBeSaved.push_back(v_id[i].first);
+				ecalRechitID_ToBeSaved.push_back(v_id[i].first.rawId());
 				rechits.push_back(v_id[i].first.rawId());
 			}
 			ecalRechitEtaPhi_ToBeSaved.push_back( std::pair<double,double>( ele->superCluster()->eta(), ele->superCluster()->phi() ));
@@ -256,6 +265,86 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 		vars_.sumWorstVertexChargedHadronPt[photon_index] = worstIsolation;
 	}
 
+	bool fillTriggerVars(const std::vector<const pat::Photon*>& final_photons) {
+		bool hasHLTCscClusterVeryLoose = false;
+
+		for (const auto& trigObj : *triggerObjects) {
+			if (trigObj.hasFilterLabel("hltCscClusterVeryLoose")) {
+				hasHLTCscClusterVeryLoose = true;
+			}
+
+			const bool passEG20HE = trigObj.hasFilterLabel("hltEG20HEFilterUnseeded");
+			const bool passEG30HE = trigObj.hasFilterLabel("hltEG30HEFilterUnseeded");
+			const bool passEG20Et = trigObj.hasFilterLabel("hltEG20EtFilterUnseeded");
+			const bool passEG30Et = trigObj.hasFilterLabel("hltEG30EtFilterUnseeded");
+			if (!(passEG20HE || passEG30HE || passEG20Et || passEG30Et)) continue;
+
+			for (size_t ipho = 0; ipho < final_photons.size(); ++ipho) {
+				const auto& pho = *final_photons[ipho];
+				const float dr = reco::deltaR(pho.eta(), pho.phi(), trigObj.eta(), trigObj.phi());
+				if (passEG20HE && dr < vars_.drHLTEG20HEUnseeded[ipho]) vars_.drHLTEG20HEUnseeded[ipho] = dr;
+				if (passEG30HE && dr < vars_.drHLTEG30HEUnseeded[ipho]) vars_.drHLTEG30HEUnseeded[ipho] = dr;
+				if (passEG20Et && dr < vars_.drHLTEG20EtUnseeded[ipho]) vars_.drHLTEG20EtUnseeded[ipho] = dr;
+				if (passEG30Et && dr < vars_.drHLTEG30EtUnseeded[ipho]) vars_.drHLTEG30EtUnseeded[ipho] = dr;
+			}
+		}
+
+		const float matchCone = 0.3;
+		for (size_t ipho = 0; ipho < final_photons.size(); ++ipho) {
+			vars_.passHLTEG20HEUnseeded[ipho] = vars_.drHLTEG20HEUnseeded[ipho] < matchCone;
+			vars_.passHLTEG30HEUnseeded[ipho] = vars_.drHLTEG30HEUnseeded[ipho] < matchCone;
+			vars_.passHLTEG20EtUnseeded[ipho] = vars_.drHLTEG20EtUnseeded[ipho] < matchCone;
+			vars_.passHLTEG30EtUnseeded[ipho] = vars_.drHLTEG30EtUnseeded[ipho] < matchCone;
+		}
+
+		return hasHLTCscClusterVeryLoose;
+	}
+
+	void fillPhoVtxVars(const std::vector<const pat::Photon*>& final_photons) {
+		const size_t nRows = final_photons.size() * nPVAll;
+		phoVtxPhotonIdx.assign(nRows, -1);
+		phoVtxVertexIdx.assign(nRows, -1);
+		phoVtxSumPx.assign(nRows, 0.f);
+		phoVtxSumPy.assign(nRows, 0.f);
+
+		for (size_t ipho = 0; ipho < final_photons.size(); ++ipho) {
+			for (int ipv = 0; ipv < nPVAll; ++ipv) {
+				const size_t idx = ipho * nPVAll + ipv;
+				phoVtxPhotonIdx[idx] = static_cast<int32_t>(ipho);
+				phoVtxVertexIdx[idx] = static_cast<int32_t>(ipv);
+			}
+		}
+
+		for (const auto& pfcand : *packedPFCands) {
+			if (pfcand.charge() == 0) continue;
+
+			double mindz = std::numeric_limits<double>::max();
+			int ipvmin = -1;
+			for (int ipv = 0; ipv < nPVAll; ++ipv) {
+				const reco::Vertex& vtx = vertices->at(ipv);
+				const double dz = std::abs(pfcand.dz(vtx.position()));
+				if (dz < mindz) {
+					mindz = dz;
+					ipvmin = ipv;
+				}
+			}
+
+			if (mindz >= 0.2 || ipvmin < 0) continue;
+			const reco::Vertex& vtx = vertices->at(ipvmin);
+			for (size_t ipho = 0; ipho < final_photons.size(); ++ipho) {
+				const auto& pho = *final_photons[ipho];
+				math::XYZVector phodir(pho.superCluster()->x() - vtx.x(),
+				                       pho.superCluster()->y() - vtx.y(),
+				                       pho.superCluster()->z() - vtx.z());
+				if (reco::deltaR(phodir.Eta(), phodir.Phi(), pfcand.eta(), pfcand.phi()) >= 0.05) continue;
+
+				const size_t idx = ipho * nPVAll + ipvmin;
+				phoVtxSumPx[idx] += pfcand.px();
+				phoVtxSumPy[idx] += pfcand.py();
+			}
+		}
+	}
+
 	bool fillEcalRechits(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
 		edm::Handle<edm::SortedCollection<EcalRecHit,edm::StrictWeakOrdering<EcalRecHit>>> ebRecHits;
 		edm::Handle<edm::SortedCollection<EcalRecHit,edm::StrictWeakOrdering<EcalRecHit>>> eeRecHits;
@@ -290,6 +379,39 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
         //edm::ESHandle<EcalPedestals> pedestalsH;
         //iSetup.get<EcalPedestalsRcd>().get(pedestalsH);
 
+        auto saveRecHit = [&](const EcalRecHitCollection::const_iterator& recHit,
+                              const DetId& recHitId,
+                              const GlobalPoint& recHitPos) {
+        	mapRecHitIdToIndex[recHitId.rawId()] = rechitIndex;
+        	ecalRechitID.push_back(static_cast<int32_t>(recHitId.rawId()));
+        	ecalRechitEta.push_back(recHitPos.eta());
+        	ecalRechitPhi.push_back(recHitPos.phi());
+        	ecalRechitX.push_back(recHitPos.x());
+        	ecalRechitY.push_back(recHitPos.y());
+        	ecalRechitZ.push_back(recHitPos.z());
+        	ecalRechitEnergy.push_back(recHit->energy());
+        	ecalRechitTime.push_back(recHit->time());
+        	ecalRechitFlagOOT.push_back(recHit->checkFlag(EcalRecHit::kOutOfTime));
+        	ecalRechitGainSwitch1.push_back(recHit->checkFlag(EcalRecHit::kHasSwitchToGain1));
+        	ecalRechitGainSwitch6.push_back(recHit->checkFlag(EcalRecHit::kHasSwitchToGain6));
+        	ecalRechitTranspCorr.push_back(laser.getLaserCorrection(recHitId, iEvent.eventAuxiliary().time()));
+
+        	float pedrms12 = -999.f;
+        	float pedrms6 = -999.f;
+        	float pedrms1 = -999.f;
+        	const auto& pediter = pedestals.find(recHitId);
+        	if (pediter != pedestals.end()) {
+        		const auto& ped = (*pediter);
+        		pedrms12 = ped.rms(1);
+        		pedrms6 = ped.rms(2);
+        		pedrms1 = ped.rms(3);
+        	}
+        	ecalRechitPedrms12.push_back(pedrms12);
+        	ecalRechitPedrms6.push_back(pedrms6);
+        	ecalRechitPedrms1.push_back(pedrms1);
+        	rechitIndex++;
+        };
+
         //Barrel Rechits
         for (EcalRecHitCollection::const_iterator recHit = ebRecHits->begin(); recHit != ebRecHits->end(); ++recHit) {
         	// first get detector id
@@ -300,7 +422,7 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
             bool matchedRechit = false;
             std::vector<uint>::iterator it;
             it = find (ecalRechitID_ToBeSaved.begin(), ecalRechitID_ToBeSaved.end(), recHitId.rawId());
-            if (it == ecalRechitID_ToBeSaved.end()) {
+            if (it != ecalRechitID_ToBeSaved.end()) {
             	matchedRechit = true;
             }
 
@@ -328,8 +450,7 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
                 continue;
             }
 
-        	mapRecHitIdToIndex[recHitId.rawId()] = rechitIndex;
-        	rechitIndex++;
+        	saveRecHit(recHit, recHitId, recHitPos);
         }
 
 		//Endcap Rechits
@@ -342,7 +463,7 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
             bool matchedRechit = false;
             std::vector<uint>::iterator it;
             it = find (ecalRechitID_ToBeSaved.begin(), ecalRechitID_ToBeSaved.end(), recHitId.rawId());
-            if (it == ecalRechitID_ToBeSaved.end()) {
+            if (it != ecalRechitID_ToBeSaved.end()) {
                 matchedRechit = true;
             }
 
@@ -370,27 +491,43 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
                 continue;
             }
 
-            mapRecHitIdToIndex[recHitId.rawId()] = rechitIndex;
-            rechitIndex++;
+            saveRecHit(recHit, recHitId, recHitPos);
 		}
 
-		// TODO save to table 
         for (uint k=0; k<ele_EcalRechitID.size(); k++) {
-        	//std::vector<uint> tmpVector;
         	for (uint l=0; l<ele_EcalRechitID[k].size(); l++) {
-        		//tmpVector.push_back(mapRecHitIdToIndex[EcalRechitID[k][l]]);
-        		ele_EcalRechitIndex.push_back(mapRecHitIdToIndex[ele_EcalRechitID[k][l]]); // flatten
+        		const auto mapIt = mapRecHitIdToIndex.find(ele_EcalRechitID[k][l]);
+        		ele_EcalRechitIndex.push_back(mapIt != mapRecHitIdToIndex.end() ? static_cast<int32_t>(mapIt->second) : -1); // flatten
         	}
-        	ele_SeedRechitIndex.push_back(mapRecHitIdToIndex[ele_SeedRechitID[k]]);
+        	const auto seedMapIt = mapRecHitIdToIndex.find(ele_SeedRechitID[k]);
+        	ele_SeedRechitIndex.push_back(seedMapIt != mapRecHitIdToIndex.end() ? static_cast<int32_t>(seedMapIt->second) : -1);
         }
 
         for (uint k=0; k<EcalRechitID.size(); k++) {
-        	//std::vector<uint> tmpVector;
+        	vars_.ecalRechitIdxStart[k] = static_cast<int32_t>(EcalRechitIndex.size());
+        	vars_.nEcalRechits[k] = static_cast<int32_t>(EcalRechitID[k].size());
         	for (uint l=0; l<EcalRechitID[k].size(); l++) {
-        		//tmpVector.push_back(mapRecHitIdToIndex[EcalRechitID[k][l]]);
-        		EcalRechitIndex.push_back(mapRecHitIdToIndex[EcalRechitID[k][l]]); // flatten
+        		const auto mapIt = mapRecHitIdToIndex.find(EcalRechitID[k][l]);
+        		EcalRechitIndex.push_back(mapIt != mapRecHitIdToIndex.end() ? static_cast<int32_t>(mapIt->second) : -1); // flatten
         	}
-        	SeedRechitIndex.push_back(mapRecHitIdToIndex[SeedRechitID[k]]);
+        	const auto seedMapIt = mapRecHitIdToIndex.find(SeedRechitID[k]);
+        	const int32_t seedIndex = seedMapIt != mapRecHitIdToIndex.end() ? static_cast<int32_t>(seedMapIt->second) : -1;
+        	SeedRechitIndex.push_back(seedIndex);
+        	vars_.seedRechitIdx[k] = seedIndex;
+        	vars_.seedRechitID[k] = static_cast<int32_t>(SeedRechitID[k]);
+        	if (seedIndex >= 0) {
+        		const size_t idx = seedIndex;
+        		vars_.seedRechitEnergy[k] = ecalRechitEnergy[idx];
+        		vars_.seedRechitTime[k] = ecalRechitTime[idx];
+        		vars_.seedRechitEta[k] = ecalRechitEta[idx];
+        		vars_.seedRechitPhi[k] = ecalRechitPhi[idx];
+        		vars_.seedRechitX[k] = ecalRechitX[idx];
+        		vars_.seedRechitY[k] = ecalRechitY[idx];
+        		vars_.seedRechitZ[k] = ecalRechitZ[idx];
+        		vars_.seedRechitFlagOOT[k] = ecalRechitFlagOOT[idx];
+        		vars_.seedRechitGainSwitch1[k] = ecalRechitGainSwitch1[idx];
+        		vars_.seedRechitGainSwitch6[k] = ecalRechitGainSwitch6[idx];
+        	}
         }
 		return true;
 	}
@@ -526,14 +663,34 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
         iEvent.getByToken(conversionsToken_,conversions);
         iEvent.getByToken(singleLegConversionsToken_,singleLegConversions);
         iEvent.getByToken(beamSpotToken_,beamSpot);
+        iEvent.getByToken(triggerObjectsToken_, triggerObjects);
 
         sumChargedHadronPtAllVertices.clear();
+        phoVtxPhotonIdx.clear();
+        phoVtxVertexIdx.clear();
+        phoVtxSumPx.clear();
+        phoVtxSumPy.clear();
         ele_SeedRechitID.clear();
         SeedRechitID.clear();
 		ele_EcalRechitID.clear();
 	    EcalRechitID.clear();
 	    ecalRechitID_ToBeSaved.clear();
 	    ecalRechitEtaPhi_ToBeSaved.clear();;
+	    ecalRechitID.clear();
+	    ecalRechitEta.clear();
+	    ecalRechitPhi.clear();
+	    ecalRechitX.clear();
+	    ecalRechitY.clear();
+	    ecalRechitZ.clear();
+	    ecalRechitEnergy.clear();
+	    ecalRechitTime.clear();
+	    ecalRechitFlagOOT.clear();
+	    ecalRechitGainSwitch1.clear();
+	    ecalRechitGainSwitch6.clear();
+	    ecalRechitTranspCorr.clear();
+	    ecalRechitPedrms12.clear();
+	    ecalRechitPedrms6.clear();
+	    ecalRechitPedrms1.clear();
 
 		const pat::MET &Met = mets->front();
 
@@ -632,7 +789,7 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	    	for ( size_t i = 0; i < v_id.size(); ++i ) {
 	    		//EcalRecHitCollection::const_iterator it = ebRecHits->find( v_id[i].first );
 
-	    		ecalRechitID_ToBeSaved.push_back(v_id[i].first);
+	    		ecalRechitID_ToBeSaved.push_back(v_id[i].first.rawId());
 	    		rechits.push_back(v_id[i].first.rawId());
 
 		    /*
@@ -672,6 +829,9 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	    	fillPFIsoVar(pho, i);
 	    } // n_final_photons
 
+	    fillPhoVtxVars(final_photons);
+	    const bool hasHLTCscClusterVeryLoose = fillTriggerVars(final_photons);
+
 		ele_EcalRechitIndex.clear();
 		EcalRechitIndex.clear();
 	    ele_SeedRechitIndex.clear(); 
@@ -682,13 +842,34 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 
         // TODO flattened variables needs reference index
 	    auto final_photons_sumChargedHadronPtAllVertices_tab = std::make_unique<nanoaod::FlatTable>(sumChargedHadronPtAllVertices.size(), "phoVtx", false, false);
-		final_photons_sumChargedHadronPtAllVertices_tab->addColumn<float>("sumChargedHadronPtAllVertices", sumChargedHadronPtAllVertices, "flattend sumChargedHadronPtAllVertices", 10);
+		final_photons_sumChargedHadronPtAllVertices_tab->addColumn<int32_t>("phoIdx", phoVtxPhotonIdx, "photon index in pho table", -1);
+		final_photons_sumChargedHadronPtAllVertices_tab->addColumn<int32_t>("vtxIdx", phoVtxVertexIdx, "vertex index in offlineSlimmedPrimaryVertices", -1);
+		final_photons_sumChargedHadronPtAllVertices_tab->addColumn<float>("sumChargedHadronPtAllVertices", sumChargedHadronPtAllVertices, "flattened sumChargedHadronPtAllVertices", 10);
+		final_photons_sumChargedHadronPtAllVertices_tab->addColumn<float>("vtxSumPx", phoVtxSumPx, "Run2-style charged PF candidate px sum near photon for this vertex", 10);
+		final_photons_sumChargedHadronPtAllVertices_tab->addColumn<float>("vtxSumPy", phoVtxSumPy, "Run2-style charged PF candidate py sum near photon for this vertex", 10);
 
 	    auto final_photons_EcalRechitIndex_tab = std::make_unique<nanoaod::FlatTable>(EcalRechitIndex.size(), "phoECALIdx", false, false);
-		final_photons_EcalRechitIndex_tab->addColumn<uint8_t>("EcalRechitIndex", EcalRechitIndex, "flattend EcalRechitIndex", -1);
+		final_photons_EcalRechitIndex_tab->addColumn<int32_t>("EcalRechitIndex", EcalRechitIndex, "flattend EcalRechitIndex", -1);
 
 	    auto final_photons_SeedRechitIndex_tab = std::make_unique<nanoaod::FlatTable>(SeedRechitIndex.size(), "phoSeedIdx", false, false);
-		final_photons_SeedRechitIndex_tab->addColumn<uint8_t>("SeedRechitIndex", SeedRechitIndex, "flattend SeedRechitIndex", -1);
+		final_photons_SeedRechitIndex_tab->addColumn<int32_t>("SeedRechitIndex", SeedRechitIndex, "flattend SeedRechitIndex", -1);
+
+	    auto ecal_rechit_tab = std::make_unique<nanoaod::FlatTable>(ecalRechitID.size(), "ecalRechit", false, false);
+	    ecal_rechit_tab->addColumn<int32_t>("ID", ecalRechitID, "raw ECAL rechit DetId", -1);
+	    ecal_rechit_tab->addColumn<float>("eta", ecalRechitEta, "ECAL rechit eta", 10);
+	    ecal_rechit_tab->addColumn<float>("phi", ecalRechitPhi, "ECAL rechit phi", 10);
+	    ecal_rechit_tab->addColumn<float>("x", ecalRechitX, "ECAL rechit x position", 10);
+	    ecal_rechit_tab->addColumn<float>("y", ecalRechitY, "ECAL rechit y position", 10);
+	    ecal_rechit_tab->addColumn<float>("z", ecalRechitZ, "ECAL rechit z position", 10);
+	    ecal_rechit_tab->addColumn<float>("energy", ecalRechitEnergy, "ECAL rechit energy", 10);
+	    ecal_rechit_tab->addColumn<float>("time", ecalRechitTime, "ECAL rechit time", 10);
+	    ecal_rechit_tab->addColumn<uint8_t>("flagOOT", ecalRechitFlagOOT, "ECAL rechit kOutOfTime flag", -1);
+	    ecal_rechit_tab->addColumn<uint8_t>("gainSwitch1", ecalRechitGainSwitch1, "ECAL rechit kHasSwitchToGain1 flag", -1);
+	    ecal_rechit_tab->addColumn<uint8_t>("gainSwitch6", ecalRechitGainSwitch6, "ECAL rechit kHasSwitchToGain6 flag", -1);
+	    ecal_rechit_tab->addColumn<float>("transpCorr", ecalRechitTranspCorr, "ECAL laser transparency correction", 10);
+	    ecal_rechit_tab->addColumn<float>("pedrms12", ecalRechitPedrms12, "ECAL pedestal RMS gain 12", 10);
+	    ecal_rechit_tab->addColumn<float>("pedrms6", ecalRechitPedrms6, "ECAL pedestal RMS gain 6", 10);
+	    ecal_rechit_tab->addColumn<float>("pedrms1", ecalRechitPedrms1, "ECAL pedestal RMS gain 1", 10);
 
 	    // Lets use this table for corrected MET
 	    auto razor_event = std::make_unique<nanoaod::FlatTable>(1, "Razor", /*singleton=*/true, /*extension=*/false);
@@ -700,12 +881,14 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	    razor_event->addColumnValue<float>("metType1Py", metType1Py, "metType1Py", 10);
 	    razor_event->addColumnValue<float>("metType1Pt", metType1Pt, "metType1Pt", 10);
 	    razor_event->addColumnValue<float>("metType1Phi", metType1Phi, "metType1Phi", 10);
+	    razor_event->addColumnValue<uint8_t>("hasHLTCscClusterVeryLoose", static_cast<uint8_t>(hasHLTCscClusterVeryLoose), "1 if any trigger object has hltCscClusterVeryLoose filter label", -1);
 
 	    iEvent.put(std::move(tab), "Photon");  // this is just to check
 	    iEvent.put(std::move(final_photons_tab), "pho");
 	    iEvent.put(std::move(final_photons_sumChargedHadronPtAllVertices_tab), "phoVtx");
 	    iEvent.put(std::move(final_photons_EcalRechitIndex_tab), "phoECALIdx");
 	    iEvent.put(std::move(final_photons_SeedRechitIndex_tab), "phoSeedIdx");
+	    iEvent.put(std::move(ecal_rechit_tab), "ecalRechit");
 	    iEvent.put(std::move(razor_event), "Razor");
 	}
 
@@ -725,6 +908,7 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
 	edm::EDGetTokenT<std::vector<reco::Conversion>> conversionsToken_;
 	edm::EDGetTokenT<std::vector<reco::Conversion> > singleLegConversionsToken_;
 	edm::EDGetTokenT<reco::BeamSpot> beamSpotToken_;
+	edm::EDGetTokenT<pat::TriggerObjectStandAloneCollection> triggerObjectsToken_;
 	edm::EDGetTokenT<edm::SortedCollection<EcalRecHit,edm::StrictWeakOrdering<EcalRecHit>>> ebRecHitsToken_;
 	edm::EDGetTokenT<edm::SortedCollection<EcalRecHit,edm::StrictWeakOrdering<EcalRecHit>>> eeRecHitsToken_;
 	edm::ESGetToken<CaloGeometry, CaloGeometryRecord> caloGeomToken_;
@@ -742,22 +926,42 @@ class KNULLPProducer : public edm::stream::EDProducer<> {
     edm::Handle<std::vector<reco::Conversion> > conversions;
     edm::Handle<std::vector<reco::Conversion>> singleLegConversions;
     edm::Handle<reco::BeamSpot> beamSpot;
+    edm::Handle<pat::TriggerObjectStandAloneCollection> triggerObjects;
 
 	int nPV;
 	int nPVAll;
 	const reco::Vertex *myPV;
 	std::vector<float> sumChargedHadronPtAllVertices;
+	std::vector<int32_t> phoVtxPhotonIdx;
+	std::vector<int32_t> phoVtxVertexIdx;
+	std::vector<float> phoVtxSumPx;
+	std::vector<float> phoVtxSumPy;
 	std::vector<std::vector<uint>> ele_EcalRechitID;
 	std::vector<std::vector<uint>> EcalRechitID;
 	std::vector<uint> ele_SeedRechitID;
 	std::vector<uint> SeedRechitID;
-	std::vector<uint> ele_EcalRechitIndex;  // flatten
-	std::vector<uint> EcalRechitIndex;  // flatten
-	std::vector<uint> ele_SeedRechitIndex;
-	std::vector<uint> SeedRechitIndex;
+	std::vector<int32_t> ele_EcalRechitIndex;  // flatten
+	std::vector<int32_t> EcalRechitIndex;  // flatten
+	std::vector<int32_t> ele_SeedRechitIndex;
+	std::vector<int32_t> SeedRechitIndex;
 	std::vector<uint> ecalRechitID_ToBeSaved;
 	std::vector<std::pair<double,double>> ecalRechitEtaPhi_ToBeSaved;  // FIXME https://github.com/cms-lpc-llp/DelayedPhotonTuplizer/blob/master/plugins/RazorTuplizer.cc#L1687
 	std::vector<std::pair<double,double>> ecalRechitJetEtaPhi_ToBeSaved;
+	std::vector<int32_t> ecalRechitID;
+	std::vector<float> ecalRechitEta;
+	std::vector<float> ecalRechitPhi;
+	std::vector<float> ecalRechitX;
+	std::vector<float> ecalRechitY;
+	std::vector<float> ecalRechitZ;
+	std::vector<float> ecalRechitEnergy;
+	std::vector<float> ecalRechitTime;
+	std::vector<uint8_t> ecalRechitFlagOOT;
+	std::vector<uint8_t> ecalRechitGainSwitch1;
+	std::vector<uint8_t> ecalRechitGainSwitch6;
+	std::vector<float> ecalRechitTranspCorr;
+	std::vector<float> ecalRechitPedrms12;
+	std::vector<float> ecalRechitPedrms6;
+	std::vector<float> ecalRechitPedrms1;
 	PhoVars vars_;
 };
 
